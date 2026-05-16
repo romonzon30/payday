@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import GoogleIcon from "./GoogleIcon";
 import ShieldIcon from "./ShieldIcon";
 import WalletIcon from "./WalletIcon";
 import styles from "./LoginCard.module.css";
@@ -42,6 +42,10 @@ export default function LoginCard() {
     }
   }
 
+  function loginWithGoogle() {
+    alert("Google Login todavía no está conectado");
+  }
+
   return (
     <div className={styles.card}>
       <div className={styles.iconWrapper}>
@@ -54,6 +58,13 @@ export default function LoginCard() {
         Accede a tu cuenta de PayDay de forma segura y gestiona tus obligaciones
         fiscales en segundos.
       </p>
+
+      <button className={styles.googleBtn} onClick={loginWithGoogle} type="button">
+        <GoogleIcon />
+        <span>Iniciar sesión con Google</span>
+      </button>
+
+      <div className={styles.divider} role="separator" />
 
       <input
         className={styles.input}
@@ -76,8 +87,6 @@ export default function LoginCard() {
       <button className={styles.googleBtn} onClick={register} type="button">
         Registrarse
       </button>
-
-      <div className={styles.divider} role="separator" />
 
       <div className={styles.securityBadge}>
         <ShieldIcon />
