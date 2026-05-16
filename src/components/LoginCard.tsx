@@ -1,47 +1,9 @@
-import { useState } from "react";
 import GoogleIcon from "./GoogleIcon";
 import ShieldIcon from "./ShieldIcon";
 import WalletIcon from "./WalletIcon";
 import styles from "./LoginCard.module.css";
 
-const API_URL = "https://payday-w8er.onrender.com";
-
 export default function LoginCard() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  async function register() {
-    const res = await fetch(`${API_URL}/api/auth/register`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await res.json();
-    alert(data);
-  }
-
-  async function login() {
-    const res = await fetch(`${API_URL}/api/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      localStorage.setItem("token", data.token);
-      alert("Login correcto");
-    } else {
-      alert(data);
-    }
-  }
-
   function loginWithGoogle() {
     alert("Google Login todavía no está conectado");
   }
@@ -59,34 +21,17 @@ export default function LoginCard() {
         fiscales en segundos.
       </p>
 
-      <button className={styles.googleBtn} onClick={loginWithGoogle} type="button">
+      <button
+        className={styles.googleBtn}
+        onClick={loginWithGoogle}
+        type="button"
+        aria-label="Iniciar sesión con Google"
+      >
         <GoogleIcon />
         <span>Iniciar sesión con Google</span>
       </button>
 
       <div className={styles.divider} role="separator" />
-
-      <input
-        className={styles.input}
-        type="email"
-        placeholder="Email"
-        onChange={(e) => setEmail(e.target.value)}
-      />
-
-      <input
-        className={styles.input}
-        type="password"
-        placeholder="Contraseña"
-        onChange={(e) => setPassword(e.target.value)}
-      />
-
-      <button className={styles.googleBtn} onClick={login} type="button">
-        Iniciar sesión
-      </button>
-
-      <button className={styles.googleBtn} onClick={register} type="button">
-        Registrarse
-      </button>
 
       <div className={styles.securityBadge}>
         <ShieldIcon />
