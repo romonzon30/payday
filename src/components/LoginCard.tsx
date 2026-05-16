@@ -1,11 +1,28 @@
-import GoogleIcon from "./GoogleIcon";
+import { GoogleLogin } from "@react-oauth/google";
 import ShieldIcon from "./ShieldIcon";
 import WalletIcon from "./WalletIcon";
 import styles from "./LoginCard.module.css";
 
+const API_URL = "https://payday-w8er.onrender.com";
+
 export default function LoginCard() {
-  function loginWithGoogle() {
-    alert("Google Login todavía no está conectado");
+  async function handleGoogleLogin(credential: string) {
+    const res = await fetch(`${API_URL}/api/auth/google`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ credential }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      localStorage.setItem("token", data.token);
+      alert("Login con Google correcto");
+    } else {
+      alert(data.message || "Error con Google");
+    }
   }
 
   return (
@@ -21,15 +38,14 @@ export default function LoginCard() {
         fiscales en segundos.
       </p>
 
-      <button
-        className={styles.googleBtn}
-        onClick={loginWithGoogle}
-        type="button"
-        aria-label="Iniciar sesión con Google"
-      >
-        <GoogleIcon />
-        <span>Iniciar sesión con Google</span>
-      </button>
+      <GoogleLogin
+        onSuccess={(credentialResponse) => {
+          if (credentialResponse.credential) {
+            handleGoogleLogin(credentialResponse.credential);
+          }
+        }}
+        onError={() => alert("Error al iniciar sesión con Google")}
+      />
 
       <div className={styles.divider} role="separator" />
 

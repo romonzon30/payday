@@ -1,42 +1,32 @@
 const router = require("express").Router();
 const User = require("../models/User");
-const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
 
-router.post("/register", async (req, res) => {
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+router.post("/google", async (req, res) => {
   try {
-    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+    const { credential } = req.body;
 
-    const user = new User({
-      email: req.body.email,
-      password: hashedPassword,
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
     });
 
-    await user.save();
+    const payload = ticket.getPayload();
 
-    res.json("Usuario registrado");
-  } catch (err) {
-    res.status(500).json(err);
-  }
-});
-
-router.post("/login", async (req, res) => {
-  try {
-    const user = await User.findOne({
-      email: req.body.email,
-    });
+    let user = await User.findOne({ googleId: payload.sub });
 
     if (!user) {
-      return res.status(404).json("Usuario no encontrado");
-    }
+      user = new User({
+        googleId: payload.sub,
+        email: payload.email,
+        name: payload.name,
+        picture: payload.picture,
+      });
 
-    const validPassword = await bcrypt.compare(
-      req.body.password,
-      user.password
-    );
-
-    if (!validPassword) {
-      return res.status(400).json("Contraseña incorrecta");
+      await user.save();
     }
 
     const token = jwt.sign(
@@ -46,11 +36,12 @@ router.post("/login", async (req, res) => {
 
     res.json({
       token,
-      email: user.email,
+      user,
     });
-
   } catch (err) {
-    res.status(500).json(err);
+    res.status(500).json({
+      message: "Error al iniciar sesión con Google",
+    });
   }
 });
 
