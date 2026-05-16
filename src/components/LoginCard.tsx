@@ -1,5 +1,5 @@
 import { useState } from "react";
-import GoogleIcon from "./GoogleIcon";
+
 import ShieldIcon from "./ShieldIcon";
 import WalletIcon from "./WalletIcon";
 import styles from "./LoginCard.module.css";
