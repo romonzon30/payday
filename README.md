@@ -38,15 +38,15 @@ npm install
 npm run dev
 ```
 
-La app estará disponible en `http://localhost:5173`.
+La app estará disponible en `https://payday-w8er.onrender.com`.
 
 ## Scripts disponibles
 
-| Comando         | Descripción                             |
-|-----------------|-----------------------------------------|
-| `npm run dev`   | Servidor de desarrollo con HMR          |
-| `npm run build` | Build de producción (TypeScript + Vite) |
-| `npm run preview` | Preview del build de producción       |
+| Comando           | Descripción                             |
+| ----------------- | --------------------------------------- |
+| `npm run dev`     | Servidor de desarrollo con HMR          |
+| `npm run build`   | Build de producción (TypeScript + Vite) |
+| `npm run preview` | Preview del build de producción         |
 
 ## Integrar Google OAuth
 
@@ -54,8 +54,8 @@ En `src/pages/LoginPage.tsx`, reemplazá el `alert()` del handler con tu URL de 
 
 ```ts
 const handleGoogleSignIn = () => {
-  window.location.href = '/auth/google'
-}
+  window.location.href = "/auth/google";
+};
 ```
 
 ## Tecnologías
