@@ -5,7 +5,11 @@ import styles from "./LoginCard.module.css";
 
 const API_URL = "https://payday-w8er.onrender.com";
 
-export default function LoginCard() {
+type LoginCardProps = {
+  onLoginSuccess: () => void;
+};
+
+export default function LoginCard({ onLoginSuccess }: LoginCardProps) {
   async function handleGoogleLogin(credential: string) {
     const res = await fetch(`${API_URL}/api/auth/google`, {
       method: "POST",
@@ -20,6 +24,7 @@ export default function LoginCard() {
     if (res.ok) {
       localStorage.setItem("token", data.token);
       alert("Login con Google correcto");
+      onLoginSuccess();
     } else {
       alert(data.message || "Error con Google");
     }

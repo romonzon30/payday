@@ -1,10 +1,14 @@
-import LoginCard from '../components/LoginCard'
-import styles from './LoginPage.module.css'
+import LoginCard from "../components/LoginCard";
+import styles from "./LoginPage.module.css";
 
-export default function LoginPage() {
+type LoginPageProps = {
+  onLoginSuccess: () => void;
+};
+
+export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
   return (
     <main className={styles.page}>
-      <LoginCard />
+      <LoginCard onLoginSuccess={onLoginSuccess} />
     </main>
-  )
+  );
 }

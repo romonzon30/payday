@@ -1,0 +1,210 @@
+.page {
+  padding: 48px;
+  background: #f6f7f8;
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.header h1 {
+  font-size: 36px;
+  margin: 0;
+}
+
+.header p {
+  margin-top: 8px;
+  color: #555;
+}
+
+.addButton {
+  background: #000;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 16px 24px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+.calendarBox {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.calendarHeader {
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.calendarHeader h2 {
+  text-transform: capitalize;
+  margin: 0;
+}
+
+.calendarHeader button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+  font-size: 22px;
+}
+
+.weekDays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+}
+
+.weekDays span {
+  padding: 12px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: #444;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.day {
+  min-height: 120px;
+  border-right: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+  padding: 10px;
+  background: #fafafa;
+}
+
+.dayNumber {
+  font-size: 16px;
+  color: #333;
+}
+
+.event {
+  margin-top: 8px;
+  background: #d8f3ef;
+  color: #12675d;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sidebar {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 24px;
+  max-height: 720px;
+  overflow-y: auto;
+}
+
+.sidebar h2 {
+  margin-top: 0;
+}
+
+.card {
+  border-left: 4px solid #0f766e;
+  background: #f8f9fa;
+  padding: 16px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+}
+
+.card h3 {
+  margin: 8px 0;
+}
+
+.card p {
+  color: #444;
+  margin: 0 0 8px;
+}
+
+.card button {
+  margin-top: 12px;
+  border: none;
+  background: #111;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.category {
+  font-size: 12px;
+  color: #0f766e;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.empty {
+  color: #777;
+}
+
+.form {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  display: grid;
+  gap: 12px;
+}
+
+.form input {
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.formActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.formActions button {
+  padding: 12px 18px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+}
+
+.formActions button:last-child {
+  background: #000;
+  color: white;
+}
+
+@media (max-width: 900px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+
+  .page {
+    padding: 24px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
