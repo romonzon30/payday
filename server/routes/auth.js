@@ -34,17 +34,15 @@ router.post("/google", async (req, res) => {
       process.env.JWT_SECRET
     );
 
-    res.json({
-      token,
-      user,
-    });
+    res.json({ token, user });
   } catch (err) {
-  console.error("ERROR GOOGLE AUTH:", err);
+    console.error("ERROR GOOGLE AUTH:", err);
 
-  res.status(500).json({
-    message: "Error al iniciar sesión con Google",
-    error: err.message,
-  });
-}
+    res.status(500).json({
+      message: "Error al iniciar sesión con Google",
+      error: err.message,
+    });
+  }
+});
 
 module.exports = router;
