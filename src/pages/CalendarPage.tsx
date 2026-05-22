@@ -35,26 +35,32 @@ export default function CalendarPage() {
   }, []);
 
   async function fetchDueDates() {
-    const res = await fetch(`${API_URL}/api/due-dates`);
-    const data = await res.json();
-    setDueDates(data);
+  const res = await fetch(`${API_URL}/api/due-dates`, {
+    headers: {
+      Authorization: localStorage.getItem("token") || "",
+    },
+  });
+
+  const data = await res.json();
+  setDueDates(data);
   }
 
   async function addDueDate(e: React.FormEvent) {
     e.preventDefault();
 
-    const res = await fetch(`${API_URL}/api/due-dates`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title,
-        description,
-        category,
-        date,
-      }),
-    });
+  const res = await fetch(`${API_URL}/api/due-dates`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: localStorage.getItem("token") || "",
+    },
+    body: JSON.stringify({
+      title,
+      description,
+      category,
+      date,
+    }),
+  });
 
     if (res.ok) {
       setTitle("");
@@ -67,9 +73,12 @@ export default function CalendarPage() {
   }
 
   async function deleteDueDate(id: string) {
-    await fetch(`${API_URL}/api/due-dates/${id}`, {
-      method: "DELETE",
-    });
+   await fetch(`${API_URL}/api/due-dates/${id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: localStorage.getItem("token") || "",
+    },
+  });
 
     fetchDueDates();
   }

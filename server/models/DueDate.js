@@ -1,18 +1,15 @@
 const mongoose = require("mongoose");
 
-const DueDateSchema = new mongoose.Schema(
-  {
-    title: String,
-    description: String,
-    category: String,
-    date: String,
-    status: {
-      type: String,
-      default: "pendiente",
-    },
-    userId: String,
+const DueDateSchema = new mongoose.Schema({
+  title: String,
+  date: String,
+  type: String,
+
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
   },
-  { timestamps: true }
-);
+});
 
 module.exports = mongoose.model("DueDate", DueDateSchema);

@@ -1,40 +1,33 @@
 const router = require("express").Router();
 const DueDate = require("../models/DueDate");
+const auth = require("../middleware/auth");
 
-router.get("/", async (req, res) => {
+router.get("/", auth, async (req, res) => {
   try {
-    const dueDates = await DueDate.find().sort({ date: 1 });
-    res.json(dueDates);
-  } catch (err) {
-    res.status(500).json({ message: "Error al obtener vencimientos" });
-  }
-});
-
-router.post("/", async (req, res) => {
-  try {
-    const { title, description, category, date } = req.body;
-
-    const newDueDate = new DueDate({
-      title,
-      description,
-      category,
-      date,
+    const dueDates = await DueDate.find({
+      userId: req.user.id,
     });
 
-    await newDueDate.save();
-
-    res.json(newDueDate);
+    res.json(dueDates);
   } catch (err) {
-    res.status(500).json({ message: "Error al crear vencimiento" });
+    res.status(500).json(err);
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.post("/", auth, async (req, res) => {
   try {
-    await DueDate.findByIdAndDelete(req.params.id);
-    res.json({ message: "Vencimiento eliminado" });
+    const dueDate = new DueDate({
+      title: req.body.title,
+      date: req.body.date,
+      type: req.body.type,
+      userId: req.user.id,
+    });
+
+    await dueDate.save();
+
+    res.json(dueDate);
   } catch (err) {
-    res.status(500).json({ message: "Error al eliminar vencimiento" });
+    res.status(500).json(err);
   }
 });
 
