@@ -12,7 +12,7 @@ export default function App() {
 
   return (
     <div className={styles.layout}>
-      <Navbar />
+      <Navbar isLoggedIn={isLoggedIn} />
 
       {isLoggedIn ? (
         <CalendarPage />

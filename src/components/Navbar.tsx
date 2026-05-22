@@ -1,7 +1,11 @@
 import { useState } from "react";
 import styles from "./Navbar.module.css";
 
-export default function Navbar() {
+type NavbarProps = {
+  isLoggedIn: boolean;
+};
+
+export default function Navbar({ isLoggedIn }: NavbarProps) {
   const [open, setOpen] = useState(false);
 
   function logout() {
@@ -13,20 +17,22 @@ export default function Navbar() {
     <header className={styles.navbar}>
       <div className={styles.logo}>PayDay</div>
 
-      <div className={styles.menuWrapper}>
-        <button className={styles.menuButton} onClick={() => setOpen(!open)}>
-          ☰ Menú
-        </button>
+      {isLoggedIn && (
+        <div className={styles.menuWrapper}>
+          <button className={styles.menuButton} onClick={() => setOpen(!open)}>
+            ☰ Menú
+          </button>
 
-        {open && (
-          <div className={styles.dropdown}>
-            <button>Configuración</button>
-            <button>Datos personales</button>
-            <button>Notificaciones</button>
-            <button onClick={logout}>Cerrar sesión</button>
-          </div>
-        )}
-      </div>
+          {open && (
+            <div className={styles.dropdown}>
+              <button>Configuración</button>
+              <button>Datos personales</button>
+              <button>Notificaciones</button>
+              <button onClick={logout}>Cerrar sesión</button>
+            </div>
+          )}
+        </div>
+      )}
     </header>
   );
 }

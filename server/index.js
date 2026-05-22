@@ -11,6 +11,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get("/", (req, res) => {
+  res.send("PayDay API funcionando");
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/due-dates", dueDateRoutes);
 
