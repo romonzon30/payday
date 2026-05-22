@@ -23,7 +23,6 @@ export default function LoginCard({ onLoginSuccess }: LoginCardProps) {
 
     if (res.ok) {
       localStorage.setItem("token", data.token);
-      alert("Login con Google correcto");
       onLoginSuccess();
     } else {
       alert(data.message || "Error con Google");
