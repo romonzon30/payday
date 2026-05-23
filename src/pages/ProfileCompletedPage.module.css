@@ -1,0 +1,252 @@
+.page {
+  min-height: 100vh;
+  background-color: var(--color-dark-bg);
+  color: var(--color-dark-on-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+.content {
+  max-width: 480px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Lottie ──────────────────────────────────────────────── */
+.lottieWrapper {
+  width: 160px;
+  height: 160px;
+  margin-bottom: 8px;
+}
+
+.lottie {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Heading ─────────────────────────────────────────────── */
+.title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+  background: linear-gradient(135deg, #34d399, #2563eb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  font-size: 15px;
+  color: var(--color-dark-outline-variant);
+  margin-bottom: 32px;
+}
+
+/* ── Monotributo Card ────────────────────────────────────── */
+.monotributoCard {
+  width: 100%;
+  background-color: var(--color-dark-navy, #0f172a);
+  border: 1px solid var(--color-dark-navy-border, #1e293b);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(195, 198, 215, 0.1);
+}
+
+.cardBadge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background-color: rgba(37, 99, 235, 0.15);
+  color: var(--color-dark-brand);
+}
+
+.cardCategory {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-dark-on-surface);
+}
+
+/* ── Card Body ───────────────────────────────────────────── */
+.cardBody {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-bottom: 1px solid rgba(195, 198, 215, 0.1);
+}
+
+.cardRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cardLabel {
+  font-size: 13px;
+  color: var(--color-dark-outline-variant);
+}
+
+.cardValue {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-dark-on-surface);
+}
+
+.statusActive {
+  color: #34d399;
+}
+
+/* ── Vencimientos ────────────────────────────────────────── */
+.vencimientosSection {
+  padding: 20px 24px;
+}
+
+.vencimientosTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-dark-outline-variant);
+  margin-bottom: 16px;
+}
+
+.vencimientosGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.vencItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 4px;
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(195, 198, 215, 0.08);
+  transition: border-color 0.15s ease;
+}
+
+.vencMes {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-dark-outline-variant);
+}
+
+.vencDay {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-dark-on-surface);
+}
+
+.vencYear {
+  font-size: 10px;
+  color: var(--color-dark-outline-variant);
+  opacity: 0.6;
+}
+
+.vencPast {
+  opacity: 0.35;
+}
+
+.vencCurrent {
+  border-color: var(--color-primary-container);
+  background-color: rgba(37, 99, 235, 0.1);
+}
+
+.vencCurrent .vencMes {
+  color: var(--color-dark-brand);
+}
+
+.vencCurrent .vencDay {
+  color: #60a5fa;
+}
+
+/* ── Dashboard Button ────────────────────────────────────── */
+.dashboardBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 280px;
+  height: 48px;
+  padding: 12px 24px;
+  background-color: var(--color-primary-container);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+.dashboardBtn:hover {
+  background-color: #1d4ed8;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+}
+
+.dashboardBtn:active {
+  transform: scale(0.98);
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .vencimientosGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .cardHeader {
+    padding: 16px 18px;
+  }
+
+  .cardBody {
+    padding: 16px 18px;
+  }
+
+  .vencimientosSection {
+    padding: 16px 18px;
+  }
+}

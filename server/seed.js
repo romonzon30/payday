@@ -1,13 +1,6 @@
-const express = require("express");
 const mongoose = require("mongoose");
-const cors = require("cors");
-const path = require("path");
-const { MongoMemoryServer } = require("mongodb-memory-server");
+require("dotenv").config({ path: require("path").join(__dirname, ".env") });
 
-require("dotenv").config({ path: path.join(__dirname, ".env") });
-
-const authRoutes = require("./routes/auth");
-const userRoutes = require("./routes/user");
 const ConfiguracionAfip = require("./models/ConfiguracionAfip");
 
 const categoriasAfip = [
@@ -24,52 +17,29 @@ const categoriasAfip = [
   { categoria: "K", montoMensual: 65000.00, incluyeObraSocial: true,  incluyeJubilacion: true,  limiteFacturacion: 15000000.00 },
 ];
 
-async function seedCategorias() {
-  const count = await ConfiguracionAfip.countDocuments();
-  if (count === 0) {
+async function seed() {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("Conectado a MongoDB");
+
+    await ConfiguracionAfip.deleteMany({});
+    console.log("Datos existentes de configuracion_afip eliminados");
+
     const docs = categoriasAfip.map((cat) => ({
       ...cat,
       vigenciaDesde: new Date("2025-01-01"),
       vigenciaHasta: null,
     }));
+
     await ConfiguracionAfip.insertMany(docs);
-    console.log(`Seed: ${docs.length} categorías AFIP insertadas`);
+    console.log(`Seed completado: ${docs.length} categorías insertadas`);
+
+    await mongoose.disconnect();
+    console.log("Desconectado de MongoDB");
+  } catch (err) {
+    console.error("Error en seed:", err);
+    process.exit(1);
   }
 }
 
-async function start() {
-  let connected = false;
-
-  if (process.env.MONGO_URI) {
-    try {
-      await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 5000 });
-      console.log("MongoDB Atlas conectado");
-      connected = true;
-    } catch (err) {
-      console.warn("Atlas no disponible, usando memoria:", err.message);
-    }
-  }
-
-  if (!connected) {
-    const mongod = await MongoMemoryServer.create({ instance: { dbName: "monotributo_saas" } });
-    await mongoose.connect(mongod.getUri());
-    console.log("MongoDB Memory conectado");
-  }
-
-  await seedCategorias();
-
-  const app = express();
-  app.use(cors());
-  app.use(express.json());
-  app.use("/api/auth", authRoutes);
-  app.use("/api/user", userRoutes);
-
-  app.listen(5000, () => {
-    console.log("Servidor corriendo en puerto 5000");
-  });
-}
-
-start().catch((err) => {
-  console.error("Error al iniciar servidor:", err);
-  process.exit(1);
-});
+seed();

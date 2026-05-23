@@ -1,57 +1,69 @@
+import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
-import ShieldIcon from "./ShieldIcon";
-import WalletIcon from "./WalletIcon";
+import Lottie from "lottie-react";
+import type { User } from "../types";
+import loadingAnimation from "../assets/loading.json";
 import styles from "./LoginCard.module.css";
 
-const API_URL = "https://payday-w8er.onrender.com";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-export default function LoginCard() {
+interface LoginCardProps {
+  onLoginSuccess: (token: string, user: User) => void
+}
+
+export default function LoginCard({ onLoginSuccess }: LoginCardProps) {
+  const [loading, setLoading] = useState(false);
+
   async function handleGoogleLogin(credential: string) {
-    const res = await fetch(`${API_URL}/api/auth/google`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ credential }),
-    });
+    setLoading(true);
 
-    const data = await res.json();
+    try {
+      const res = await fetch(`${API_URL}/api/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential }),
+      });
 
-    if (res.ok) {
-      localStorage.setItem("token", data.token);
-      alert("Login con Google correcto");
-    } else {
-      alert(data.message || "Error con Google");
+      const data = await res.json();
+
+      if (res.ok) {
+        onLoginSuccess(data.token, data.user);
+      } else {
+        setLoading(false);
+        alert(data.message || "Error con Google");
+      }
+    } catch {
+      setLoading(false);
+      alert("Error de conexión");
     }
   }
 
   return (
-    <div className={styles.card}>
-      <div className={styles.iconWrapper}>
-        <WalletIcon />
+    <div className={styles.container}>
+      {loading && (
+        <div className={styles.loadingOverlay}>
+          <div className={styles.loadingContent}>
+            <Lottie animationData={loadingAnimation} loop className={styles.lottie} />
+          </div>
+        </div>
+      )}
+
+      <div className={styles.header}>
+        <h2 className={styles.heading}>Bienvenido</h2>
+        <p className={styles.subtitle}>
+          Ingresa tus credenciales para acceder a tu panel de control.
+        </p>
       </div>
 
-      <h1 className={styles.heading}>Simplifica tus impuestos</h1>
-
-      <p className={styles.subtitle}>
-        Accede a tu cuenta de PayDay de forma segura y gestiona tus obligaciones
-        fiscales en segundos.
-      </p>
-
-      <GoogleLogin
-        onSuccess={(credentialResponse) => {
-          if (credentialResponse.credential) {
-            handleGoogleLogin(credentialResponse.credential);
-          }
-        }}
-        onError={() => alert("Error al iniciar sesión con Google")}
-      />
-
-      <div className={styles.divider} role="separator" />
-
-      <div className={styles.securityBadge}>
-        <ShieldIcon />
-        <span>CONEXIÓN SEGURA DE NIVEL BANCARIO</span>
+      <div className={styles.formSection}>
+        <GoogleLogin
+          onSuccess={(credentialResponse) => {
+            if (credentialResponse.credential) {
+              handleGoogleLogin(credentialResponse.credential);
+            }
+          }}
+          onError={() => alert("Error al iniciar sesión con Google")}
+        />
       </div>
     </div>
   );
