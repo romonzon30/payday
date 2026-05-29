@@ -1,6 +1,39 @@
 const router = require("express").Router();
 const authMiddleware = require("../middleware/auth");
 const ConfiguracionAfip = require("../models/ConfiguracionAfip");
+const Vencimiento = require("../models/Vencimiento");
+
+// Calcula el día de vencimiento según el penúltimo dígito del CUIL
+function calcVencDay(cuit) {
+  const cuitClean = cuit.replace(/-/g, "");
+  const digit = parseInt(cuitClean.slice(-2, -1), 10);
+  if (digit <= 1) return 13;
+  if (digit <= 3) return 15;
+  if (digit <= 5) return 17;
+  if (digit <= 7) return 19;
+  return 21;
+}
+
+// Genera y persiste vencimientos para un año dado
+async function generarVencimientosAnio(userId, cuit, categoria, year) {
+  const config = await ConfiguracionAfip.findOne({ categoria });
+  const monto = config ? config.montoMensual : 0;
+  const vencDay = calcVencDay(cuit);
+
+  const docs = [];
+  for (let month = 0; month < 12; month++) {
+    docs.push({
+      userId,
+      tipo: "monotributo",
+      descripcion: "AFIP - Monotributo",
+      monto,
+      fechaVencimiento: new Date(year, month, vencDay),
+      estado: "pendiente",
+    });
+  }
+
+  await Vencimiento.insertMany(docs);
+}
 
 // GET /api/user/me — devuelve el usuario autenticado
 router.get("/me", authMiddleware, (req, res) => {
@@ -18,6 +51,7 @@ router.put("/profile", authMiddleware, async (req, res) => {
 
     // Si se agrega CUIL, consultar AFIP para obtener categoría
     if (cuit && cuit.trim() && cuit.trim() !== user.cuit) {
+      const oldCuit = user.cuit;
       user.cuit = cuit.trim();
 
       // TODO: Integrar con API real de AFIP
@@ -29,6 +63,27 @@ router.put("/profile", authMiddleware, async (req, res) => {
       }
 
       user.perfilCompleto = true;
+      await user.save();
+
+      // Si cambió el CUIL, eliminar vencimientos futuros pendientes y regenerar
+      if (oldCuit && oldCuit !== user.cuit) {
+        await Vencimiento.deleteMany({ userId: user._id, estado: "pendiente" });
+      }
+
+      // Generar vencimientos para el año actual (si no existen)
+      const currentYear = new Date().getFullYear();
+      const existing = await Vencimiento.countDocuments({
+        userId: user._id,
+        fechaVencimiento: {
+          $gte: new Date(currentYear, 0, 1),
+          $lt: new Date(currentYear + 1, 0, 1),
+        },
+      });
+      if (existing === 0) {
+        await generarVencimientosAnio(user._id, user.cuit, user.categoriaMonotributo, currentYear);
+      }
+
+      return res.json({ user });
     }
 
     await user.save();
@@ -41,7 +96,7 @@ router.put("/profile", authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/user/vencimientos — vencimientos mensuales del monotributo
+// GET /api/user/vencimientos — vencimientos mensuales del monotributo (desde DB)
 router.get("/vencimientos", authMiddleware, async (req, res) => {
   try {
     const user = req.user;
@@ -52,62 +107,70 @@ router.get("/vencimientos", authMiddleware, async (req, res) => {
       return res.json({ vencimientos: [] });
     }
 
-    // Calcular día de vencimiento según último dígito del CUIL
-    const cuitClean = user.cuit.replace(/-/g, "");
-    const lastDigit = parseInt(cuitClean.slice(-2, -1), 10);
-    let vencDay;
-    if (lastDigit <= 1) vencDay = 13;
-    else if (lastDigit <= 3) vencDay = 15;
-    else if (lastDigit <= 5) vencDay = 17;
-    else if (lastDigit <= 7) vencDay = 19;
-    else vencDay = 21;
+    // Lazy renewal: si no hay vencimientos para el año solicitado, generarlos
+    const yearStart = new Date(year, 0, 1);
+    const yearEnd = new Date(year + 1, 0, 1);
+    const countYear = await Vencimiento.countDocuments({
+      userId: user._id,
+      fechaVencimiento: { $gte: yearStart, $lt: yearEnd },
+    });
 
-    // Obtener monto de la categoría
-    const config = await ConfiguracionAfip.findOne({ categoria: user.categoriaMonotributo });
-    const monto = config ? config.montoMensual : 0;
-
-    const now = new Date();
-    const vencDate = new Date(year, month - 1, vencDay);
-
-    let estado;
-    if (vencDate < now) {
-      // Fecha pasada: simulamos pagado si la diferencia es > 5 días
-      const diffDays = Math.floor((now - vencDate) / (1000 * 60 * 60 * 24));
-      estado = diffDays > 5 ? "al_dia" : "vencido";
-    } else {
-      // Fecha futura o hoy
-      const diffDays = Math.floor((vencDate - now) / (1000 * 60 * 60 * 24));
-      estado = diffDays <= 3 ? "pendiente" : "pendiente";
+    if (countYear === 0) {
+      await generarVencimientosAnio(user._id, user.cuit, user.categoriaMonotributo, year);
     }
 
-    // Para meses anteriores al actual, marcar como al_dia
+    // Consultar vencimientos del mes solicitado
+    const monthStart = new Date(year, month - 1, 1);
+    const monthEnd = new Date(year, month, 1);
+    const vencimientos = await Vencimiento.find({
+      userId: user._id,
+      fechaVencimiento: { $gte: monthStart, $lt: monthEnd },
+    }).lean();
+
+    // Computar estado dinámicamente
+    const now = new Date();
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
-    if (year < currentYear || (year === currentYear && month < currentMonth)) {
-      estado = "al_dia";
-    }
-    // Para el mes actual, si la fecha de vencimiento ya pasó y estamos > 2 días después
-    if (year === currentYear && month === currentMonth && now.getDate() > vencDay + 2) {
-      estado = "al_dia"; // Simulamos que pagó
-    }
-    // Si es el mes actual y falta poco
-    if (year === currentYear && month === currentMonth && now.getDate() <= vencDay) {
-      const daysLeft = vencDay - now.getDate();
-      estado = daysLeft <= 3 ? "pendiente" : "pendiente";
-    }
 
-    const vencimientos = [
-      {
-        _id: `monotributo-${year}-${month}`,
-        tipo: "monotributo",
-        descripcion: "AFIP - Monotributo",
-        monto,
-        fechaVencimiento: vencDate.toISOString(),
+    const result = vencimientos.map((v) => {
+      let estado = v.estado;
+
+      // Si fue marcado como pagado, mantenerlo
+      if (estado === "pagado" || estado === "al_dia") {
+        estado = "al_dia";
+      } else {
+        // Meses anteriores al actual → al_dia (simulado)
+        if (year < currentYear || (year === currentYear && month < currentMonth)) {
+          estado = "al_dia";
+        }
+        // Mes actual: si la fecha de vencimiento pasó hace > 2 días → al_dia (simulado)
+        else if (year === currentYear && month === currentMonth) {
+          const vencDay = v.fechaVencimiento.getDate();
+          if (now.getDate() > vencDay + 2) {
+            estado = "al_dia";
+          } else if (now.getDate() > vencDay) {
+            estado = "vencido";
+          } else {
+            estado = "pendiente";
+          }
+        }
+        // Meses futuros → pendiente
+        else {
+          estado = "pendiente";
+        }
+      }
+
+      return {
+        _id: v._id,
+        tipo: v.tipo,
+        descripcion: v.descripcion,
+        monto: v.monto,
+        fechaVencimiento: v.fechaVencimiento,
         estado,
-      },
-    ];
+      };
+    });
 
-    res.json({ vencimientos });
+    res.json({ vencimientos: result });
   } catch (err) {
     console.error("Error en /vencimientos:", err.message);
     res.status(500).json({ message: "Error al obtener vencimientos" });

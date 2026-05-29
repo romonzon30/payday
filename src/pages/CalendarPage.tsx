@@ -275,9 +275,6 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
                       </p>
                       <div className={styles.vencCardBottom}>
                         <span className={styles.vencCardMonto}>{formatMonto(v.monto)}</span>
-                        {v.estado === 'al_dia' && (
-                          <button className={styles.vencCardBtnGreen}>Ver comprobante</button>
-                        )}
                         {v.estado === 'pendiente' && (
                           <button className={styles.vencCardBtnBlue}>Pagar ahora</button>
                         )}

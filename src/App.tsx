@@ -35,7 +35,7 @@ export default function App() {
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data) => {
         setUser(data.user)
-        setView('dashboard')
+        setView(data.user.perfilCompleto ? 'calendar' : 'dashboard')
       })
       .catch(() => {
         localStorage.removeItem('token')
@@ -46,7 +46,7 @@ export default function App() {
   const handleLoginSuccess = useCallback((token: string, userData: User) => {
     localStorage.setItem('token', token)
     setUser(userData)
-    setView('dashboard')
+    setView(userData.perfilCompleto ? 'calendar' : 'dashboard')
   }, [])
 
   const handleLogout = useCallback(() => {
@@ -65,7 +65,7 @@ export default function App() {
     return (
       <ProfileCompletedPage
         user={user}
-        onGoToDashboard={() => setView('dashboard')}
+        onGoToDashboard={() => setView('calendar')}
       />
     )
   }

@@ -404,7 +404,6 @@
   font-weight: 700;
 }
 
-.vencCardBtnGreen,
 .vencCardBtnBlue,
 .vencCardBtnRed {
   padding: 6px 14px;
@@ -417,15 +416,9 @@
   transition: opacity 0.15s ease;
 }
 
-.vencCardBtnGreen:hover,
 .vencCardBtnBlue:hover,
 .vencCardBtnRed:hover {
   opacity: 0.85;
-}
-
-.vencCardBtnGreen {
-  background-color: rgba(52, 211, 153, 0.15);
-  color: #34d399;
 }
 
 .vencCardBtnBlue {
