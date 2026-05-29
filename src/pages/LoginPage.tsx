@@ -39,7 +39,6 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
           <h1>PAYDAY</h1>
         </div>
         <LoginCard onLoginSuccess={onLoginSuccess} />
-        <AppFooter />
       </div>
     </div>
   )
