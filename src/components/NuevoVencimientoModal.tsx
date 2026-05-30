@@ -43,6 +43,10 @@ export default function NuevoVencimientoModal({ isoDate, onClose, onCreated }: N
       setError('La fecha es obligatoria')
       return
     }
+    if (monto === '' || Number.isNaN(Number(monto)) || Number(monto) <= 0) {
+      setError('El monto debe ser mayor a 0')
+      return
+    }
 
     setLoading(true)
     try {
@@ -104,13 +108,13 @@ export default function NuevoVencimientoModal({ isoDate, onClose, onCreated }: N
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="descripcion">Descripción</label>
+            <label className={styles.label} htmlFor="descripcion">Descripción (opcional)</label>
             <textarea
               id="descripcion"
               className={styles.textarea}
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
-              placeholder="Notas adicionales (opcional)"
+              placeholder="Notas adicionales"
             />
           </div>
 
@@ -126,7 +130,7 @@ export default function NuevoVencimientoModal({ isoDate, onClose, onCreated }: N
               />
             </div>
             <div className={styles.field}>
-              <label className={styles.label} htmlFor="monto">Monto</label>
+              <label className={styles.label} htmlFor="monto">Monto *</label>
               <input
                 id="monto"
                 className={styles.input}

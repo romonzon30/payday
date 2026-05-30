@@ -123,6 +123,36 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
     fetchVencimientos(currentYear, currentMonth)
   }
 
+  async function toggleEstado(v: Vencimiento) {
+    const nuevoEstado = v.estado === 'al_dia' ? 'pendiente' : 'pagado'
+    const prev = vencimientos
+    setVencimientos((list) =>
+      list.map((x) =>
+        x._id === v._id ? { ...x, estado: nuevoEstado === 'pagado' ? 'al_dia' : 'pendiente' } : x
+      )
+    )
+
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch(`${API_URL}/api/user/vencimientos/${v._id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ estado: nuevoEstado }),
+      })
+      if (!res.ok) {
+        setVencimientos(prev)
+        return
+      }
+      // refetch para que el server recalcule estado real (pendiente vs vencido por fecha)
+      fetchVencimientos(currentYear, currentMonth)
+    } catch {
+      setVencimientos(prev)
+    }
+  }
+
   function goToday() {
     setCurrentMonth(today.getMonth())
     setCurrentYear(today.getFullYear())
@@ -244,6 +274,11 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
                           v.estado === 'pendiente' ? styles.dayEventPending :
                           styles.dayEventOverdue
                         }`}
+                        title={v.estado === 'al_dia' ? 'Doble click para marcar como pendiente' : 'Doble click para marcar como pagado'}
+                        onDoubleClick={(e) => {
+                          e.stopPropagation()
+                          toggleEstado(v)
+                        }}
                       >
                         <span className={styles.dayEventLabel}>
                           {v.tipo === 'monotributo' ? 'Monotributo' : (v.titulo || v.descripcion)}
@@ -286,7 +321,12 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
                   const monthShort = MONTH_NAMES[vDate.getMonth()].slice(0, 3)
                   const isPast = vDate < today
                   return (
-                    <div key={v._id} className={styles.vencCard}>
+                    <div
+                      key={v._id}
+                      className={styles.vencCard}
+                      title="Doble click para cambiar estado"
+                      onDoubleClick={() => toggleEstado(v)}
+                    >
                       <div className={styles.vencCardTop}>
                         <div>
                           <h3 className={styles.vencCardTitle}>{v.tipo === 'custom' ? (v.titulo || v.descripcion) : v.descripcion}</h3>
@@ -301,10 +341,13 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
                       <div className={styles.vencCardBottom}>
                         <span className={styles.vencCardMonto}>{formatMonto(v.monto)}</span>
                         {v.estado === 'pendiente' && (
-                          <button className={styles.vencCardBtnBlue}>Pagar ahora</button>
+                          <button className={styles.vencCardBtnBlue} onClick={() => toggleEstado(v)}>Marcar como pagado</button>
                         )}
                         {v.estado === 'vencido' && (
-                          <button className={styles.vencCardBtnRed}>Regularizar</button>
+                          <button className={styles.vencCardBtnRed} onClick={() => toggleEstado(v)}>Regularizar</button>
+                        )}
+                        {v.estado === 'al_dia' && (
+                          <button className={styles.vencCardBtnGhost} onClick={() => toggleEstado(v)}>Marcar pendiente</button>
                         )}
                       </div>
                     </div>

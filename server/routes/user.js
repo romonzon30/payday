@@ -235,4 +235,25 @@ router.delete("/vencimientos/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// PATCH /api/user/vencimientos/:id — actualizar estado (pagar / desmarcar)
+router.patch("/vencimientos/:id", authMiddleware, async (req, res) => {
+  try {
+    const { estado } = req.body;
+    if (!["pagado", "pendiente"].includes(estado)) {
+      return res.status(400).json({ message: "Estado inválido" });
+    }
+
+    const venc = await Vencimiento.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!venc) return res.status(404).json({ message: "Vencimiento no encontrado" });
+
+    venc.estado = estado;
+    venc.fechaPago = estado === "pagado" ? new Date() : null;
+    await venc.save();
+
+    res.json({ vencimiento: venc });
+  } catch (err) {
+    res.status(500).json({ message: "Error al actualizar vencimiento" });
+  }
+});
+
 module.exports = router;
