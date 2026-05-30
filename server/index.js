@@ -2,7 +2,6 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
-const { MongoMemoryServer } = require("mongodb-memory-server");
 
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
@@ -57,9 +56,15 @@ async function start() {
   }
 
   if (!connected) {
-    const mongod = await MongoMemoryServer.create({ instance: { dbName: "monotributo_saas" } });
-    await mongoose.connect(mongod.getUri());
-    console.log("MongoDB Memory conectado");
+    try {
+      const { MongoMemoryServer } = require("mongodb-memory-server");
+      const mongod = await MongoMemoryServer.create({ instance: { dbName: "monotributo_saas" } });
+      await mongoose.connect(mongod.getUri());
+      console.log("MongoDB Memory conectado");
+    } catch {
+      console.error("MONGO_URI no definida y mongodb-memory-server no disponible. Abortando.");
+      process.exit(1);
+    }
   }
 
   await seedCategorias();
