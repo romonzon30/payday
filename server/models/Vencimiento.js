@@ -4,7 +4,8 @@ const VencimientoSchema = new mongoose.Schema(
   {
     impuestoId: { type: mongoose.Schema.Types.ObjectId, ref: "Impuesto", default: null },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    tipo: { type: String, default: "monotributo" },
+    tipo: { type: String, default: "monotributo" }, // "monotributo" | "custom"
+    titulo: { type: String, default: "" },
     descripcion: { type: String, default: "AFIP - Monotributo" },
     monto: { type: Number, default: 0 },
     fechaVencimiento: { type: Date, required: true, index: true },
@@ -16,6 +17,8 @@ const VencimientoSchema = new mongoose.Schema(
     },
     recordatorioEnviado: { type: Boolean, default: false },
     notaUsuario: { type: String, default: "" },
+    notificarEmail: { type: Boolean, default: false },
+    notificarSms: { type: Boolean, default: false },
   },
   { timestamps: { createdAt: "creadoEn", updatedAt: false } }
 );

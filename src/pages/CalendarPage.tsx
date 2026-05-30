@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { User } from '../types'
 import AppFooter from '../components/AppFooter'
+import NuevoVencimientoModal from '../components/NuevoVencimientoModal'
 import styles from './CalendarPage.module.css'
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '')
@@ -15,10 +16,13 @@ interface CalendarPageProps {
 interface Vencimiento {
   _id: string
   tipo: string
+  titulo?: string
   descripcion: string
   monto: number
   fechaVencimiento: string
   estado: 'al_dia' | 'pendiente' | 'vencido'
+  notificarEmail?: boolean
+  notificarSms?: boolean
 }
 
 const DAYS_HEADER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -80,6 +84,8 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
   const [vencimientos, setVencimientos] = useState<Vencimiento[]>([])
   const [loading, setLoading] = useState(true)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalDate, setModalDate] = useState('')
 
   const fetchVencimientos = useCallback(async (year: number, month: number) => {
     setLoading(true)
@@ -102,6 +108,20 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
   useEffect(() => {
     fetchVencimientos(currentYear, currentMonth)
   }, [currentYear, currentMonth, fetchVencimientos])
+
+  function openNewModal(day?: number) {
+    const targetDay = day ?? today.getDate()
+    const yyyy = currentYear.toString().padStart(4, '0')
+    const mm = String(currentMonth + 1).padStart(2, '0')
+    const dd = String(targetDay).padStart(2, '0')
+    setModalDate(`${yyyy}-${mm}-${dd}`)
+    setModalOpen(true)
+  }
+
+  function handleCreated() {
+    setModalOpen(false)
+    fetchVencimientos(currentYear, currentMonth)
+  }
 
   function goToday() {
     setCurrentMonth(today.getMonth())
@@ -196,6 +216,10 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
               <button className={styles.calendarNavBtn} onClick={goNext}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
               </button>
+              <button className={styles.newBtn} onClick={() => openNewModal()}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nuevo vencimiento
+              </button>
             </div>
 
             <div className={styles.calendarGrid}>
@@ -209,6 +233,7 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
                   <div
                     key={i}
                     className={`${styles.dayCell} ${!cell.currentMonth ? styles.dayCellOther : ''} ${isToday ? styles.dayCellToday : ''}`}
+                    onDoubleClick={() => cell.currentMonth && openNewModal(cell.day)}
                   >
                     <span className={styles.dayNumber}>{cell.day}</span>
                     {dayVenc && dayVenc.map((v) => (
@@ -221,7 +246,7 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
                         }`}
                       >
                         <span className={styles.dayEventLabel}>
-                          {v.tipo === 'monotributo' ? 'Monotributo' : v.descripcion}
+                          {v.tipo === 'monotributo' ? 'Monotributo' : (v.titulo || v.descripcion)}
                         </span>
                         {v.estado === 'al_dia' && <span className={styles.dayEventBadge}>Pagado</span>}
                       </div>
@@ -264,7 +289,7 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
                     <div key={v._id} className={styles.vencCard}>
                       <div className={styles.vencCardTop}>
                         <div>
-                          <h3 className={styles.vencCardTitle}>{v.descripcion}</h3>
+                          <h3 className={styles.vencCardTitle}>{v.tipo === 'custom' ? (v.titulo || v.descripcion) : v.descripcion}</h3>
                           <span className={`${styles.vencCardStatus} ${statusClass(v.estado)}`}>
                             {statusLabel(v.estado)}
                           </span>
@@ -301,6 +326,14 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
         </div>
         <AppFooter />
       </div>
+
+      {modalOpen && (
+        <NuevoVencimientoModal
+          isoDate={modalDate}
+          onClose={() => setModalOpen(false)}
+          onCreated={handleCreated}
+        />
+      )}
     </div>
   )
 }

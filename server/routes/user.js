@@ -35,8 +35,31 @@ async function generarVencimientosAnio(userId, cuit, categoria, year) {
   await Vencimiento.insertMany(docs);
 }
 
-// GET /api/user/me — devuelve el usuario autenticado
-router.get("/me", authMiddleware, (req, res) => {
+// Asegura que existan los vencimientos monotributo del año solicitado
+async function ensureVencimientosAnio(user, year) {
+  if (!user.perfilCompleto || !user.cuit || !user.categoriaMonotributo) return;
+
+  const yearStart = new Date(year, 0, 1);
+  const yearEnd = new Date(year + 1, 0, 1);
+  const count = await Vencimiento.countDocuments({
+    userId: user._id,
+    tipo: "monotributo",
+    fechaVencimiento: { $gte: yearStart, $lt: yearEnd },
+  });
+
+  if (count === 0) {
+    await generarVencimientosAnio(user._id, user.cuit, user.categoriaMonotributo, year);
+  }
+}
+
+// GET /api/user/me — devuelve el usuario autenticado.
+// Si tiene CUIL + categoría, asegura vencimientos del año actual.
+router.get("/me", authMiddleware, async (req, res) => {
+  try {
+    await ensureVencimientosAnio(req.user, new Date().getFullYear());
+  } catch (err) {
+    console.error("Error asegurando vencimientos en /me:", err.message);
+  }
   res.json({ user: req.user });
 });
 
@@ -49,13 +72,11 @@ router.put("/profile", authMiddleware, async (req, res) => {
     if (nombreCompleto) user.nombreCompleto = nombreCompleto.trim();
     if (emailNotificaciones) user.emailNotificaciones = emailNotificaciones.trim();
 
-    // Si se agrega CUIL, consultar AFIP para obtener categoría
     if (cuit && cuit.trim() && cuit.trim() !== user.cuit) {
       const oldCuit = user.cuit;
       user.cuit = cuit.trim();
 
       // TODO: Integrar con API real de AFIP
-      // Por ahora, asignamos categoría A como default al vincular CUIL
       const categoria = await ConfiguracionAfip.findOne({ categoria: "A" });
       if (categoria) {
         user.categoriaMonotributo = categoria.categoria;
@@ -65,15 +86,18 @@ router.put("/profile", authMiddleware, async (req, res) => {
       user.perfilCompleto = true;
       await user.save();
 
-      // Si cambió el CUIL, eliminar vencimientos futuros pendientes y regenerar
       if (oldCuit && oldCuit !== user.cuit) {
-        await Vencimiento.deleteMany({ userId: user._id, estado: "pendiente" });
+        await Vencimiento.deleteMany({
+          userId: user._id,
+          tipo: "monotributo",
+          estado: "pendiente",
+        });
       }
 
-      // Generar vencimientos para el año actual (si no existen)
       const currentYear = new Date().getFullYear();
       const existing = await Vencimiento.countDocuments({
         userId: user._id,
+        tipo: "monotributo",
         fechaVencimiento: {
           $gte: new Date(currentYear, 0, 1),
           $lt: new Date(currentYear + 1, 0, 1),
@@ -96,38 +120,24 @@ router.put("/profile", authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/user/vencimientos — vencimientos mensuales del monotributo (desde DB)
+// GET /api/user/vencimientos — vencimientos del mes (monotributo + custom)
 router.get("/vencimientos", authMiddleware, async (req, res) => {
   try {
     const user = req.user;
     const year = parseInt(req.query.year) || new Date().getFullYear();
-    const month = parseInt(req.query.month) || new Date().getMonth() + 1; // 1-12
+    const month = parseInt(req.query.month) || new Date().getMonth() + 1;
 
-    if (!user.perfilCompleto || !user.cuit || !user.categoriaMonotributo) {
-      return res.json({ vencimientos: [] });
-    }
+    await ensureVencimientosAnio(user, year);
 
-    // Lazy renewal: si no hay vencimientos para el año solicitado, generarlos
-    const yearStart = new Date(year, 0, 1);
-    const yearEnd = new Date(year + 1, 0, 1);
-    const countYear = await Vencimiento.countDocuments({
-      userId: user._id,
-      fechaVencimiento: { $gte: yearStart, $lt: yearEnd },
-    });
-
-    if (countYear === 0) {
-      await generarVencimientosAnio(user._id, user.cuit, user.categoriaMonotributo, year);
-    }
-
-    // Consultar vencimientos del mes solicitado
     const monthStart = new Date(year, month - 1, 1);
     const monthEnd = new Date(year, month, 1);
     const vencimientos = await Vencimiento.find({
       userId: user._id,
       fechaVencimiento: { $gte: monthStart, $lt: monthEnd },
-    }).lean();
+    })
+      .sort({ fechaVencimiento: 1 })
+      .lean();
 
-    // Computar estado dinámicamente
     const now = new Date();
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
@@ -135,38 +145,35 @@ router.get("/vencimientos", authMiddleware, async (req, res) => {
     const result = vencimientos.map((v) => {
       let estado = v.estado;
 
-      // Si fue marcado como pagado, mantenerlo
-      if (estado === "pagado" || estado === "al_dia") {
-        estado = "al_dia";
-      } else {
-        // Meses anteriores al actual → al_dia (simulado)
-        if (year < currentYear || (year === currentYear && month < currentMonth)) {
+      if (v.tipo === "custom") {
+        if (estado === "pagado" || estado === "al_dia") {
           estado = "al_dia";
+        } else {
+          estado = new Date(v.fechaVencimiento) < now ? "vencido" : "pendiente";
         }
-        // Mes actual: si la fecha de vencimiento pasó hace > 2 días → al_dia (simulado)
-        else if (year === currentYear && month === currentMonth) {
-          const vencDay = v.fechaVencimiento.getDate();
-          if (now.getDate() > vencDay + 2) {
-            estado = "al_dia";
-          } else if (now.getDate() > vencDay) {
-            estado = "vencido";
-          } else {
-            estado = "pendiente";
-          }
-        }
-        // Meses futuros → pendiente
-        else {
-          estado = "pendiente";
-        }
+      } else if (estado === "pagado" || estado === "al_dia") {
+        estado = "al_dia";
+      } else if (year < currentYear || (year === currentYear && month < currentMonth)) {
+        estado = "al_dia";
+      } else if (year === currentYear && month === currentMonth) {
+        const vencDay = new Date(v.fechaVencimiento).getDate();
+        if (now.getDate() > vencDay + 2) estado = "al_dia";
+        else if (now.getDate() > vencDay) estado = "vencido";
+        else estado = "pendiente";
+      } else {
+        estado = "pendiente";
       }
 
       return {
         _id: v._id,
         tipo: v.tipo,
+        titulo: v.titulo || "",
         descripcion: v.descripcion,
         monto: v.monto,
         fechaVencimiento: v.fechaVencimiento,
         estado,
+        notificarEmail: !!v.notificarEmail,
+        notificarSms: !!v.notificarSms,
       };
     });
 
@@ -174,6 +181,57 @@ router.get("/vencimientos", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("Error en /vencimientos:", err.message);
     res.status(500).json({ message: "Error al obtener vencimientos" });
+  }
+});
+
+// POST /api/user/vencimientos — crear un vencimiento custom
+router.post("/vencimientos", authMiddleware, async (req, res) => {
+  try {
+    const { titulo, descripcion, monto, fechaVencimiento, notificarEmail, notificarSms } = req.body;
+
+    if (!titulo || !titulo.trim()) {
+      return res.status(400).json({ message: "Título requerido" });
+    }
+    if (!fechaVencimiento) {
+      return res.status(400).json({ message: "Fecha requerida" });
+    }
+
+    const fecha = new Date(fechaVencimiento);
+    if (Number.isNaN(fecha.getTime())) {
+      return res.status(400).json({ message: "Fecha inválida" });
+    }
+
+    const venc = await Vencimiento.create({
+      userId: req.user._id,
+      tipo: "custom",
+      titulo: titulo.trim(),
+      descripcion: (descripcion || titulo).trim(),
+      monto: Number(monto) || 0,
+      fechaVencimiento: fecha,
+      estado: "pendiente",
+      notificarEmail: !!notificarEmail,
+      notificarSms: !!notificarSms,
+    });
+
+    res.status(201).json({ vencimiento: venc });
+  } catch (err) {
+    console.error("Error creando vencimiento custom:", err.message);
+    res.status(500).json({ message: "Error al crear vencimiento" });
+  }
+});
+
+// DELETE /api/user/vencimientos/:id — eliminar un vencimiento custom propio
+router.delete("/vencimientos/:id", authMiddleware, async (req, res) => {
+  try {
+    const venc = await Vencimiento.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!venc) return res.status(404).json({ message: "Vencimiento no encontrado" });
+    if (venc.tipo !== "custom") {
+      return res.status(403).json({ message: "Solo se pueden eliminar vencimientos custom" });
+    }
+    await venc.deleteOne();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: "Error al eliminar vencimiento" });
   }
 });
 
