@@ -38,6 +38,12 @@ async function seedCategorias() {
 }
 
 async function start() {
+  const port = Number(process.env.PORT) || 5000;
+  const allowedOrigins = (process.env.CORS_ORIGIN || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   let connected = false;
 
   if (process.env.MONGO_URI) {
@@ -59,13 +65,23 @@ async function start() {
   await seedCategorias();
 
   const app = express();
-  app.use(cors());
+  app.use(
+    cors({
+      origin(origin, callback) {
+        if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+
+        return callback(new Error("CORS blocked"));
+      },
+    })
+  );
   app.use(express.json());
   app.use("/api/auth", authRoutes);
   app.use("/api/user", userRoutes);
 
-  app.listen(5000, () => {
-    console.log("Servidor corriendo en puerto 5000");
+  app.listen(port, () => {
+    console.log(`Servidor corriendo en puerto ${port}`);
   });
 }
 

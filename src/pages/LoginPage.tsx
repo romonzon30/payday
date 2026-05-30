@@ -1,6 +1,5 @@
 import type { User } from '../types'
 import LoginCard from '../components/LoginCard'
-import AppFooter from '../components/AppFooter'
 import styles from './LoginPage.module.css'
 
 interface LoginPageProps {

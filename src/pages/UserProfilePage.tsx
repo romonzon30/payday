@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import type { User } from '../types'
-import AppFooter from '../components/AppFooter'
 import styles from './UserProfilePage.module.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
