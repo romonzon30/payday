@@ -5,7 +5,7 @@ import type { User } from "../types";
 import loadingAnimation from "../assets/loading.json";
 import styles from "./LoginCard.module.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/+$/, '');
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 interface LoginCardProps {

@@ -6,7 +6,7 @@ import UserProfilePage from './pages/UserProfilePage'
 import ProfileCompletedPage from './pages/ProfileCompletedPage'
 import CalendarPage from './pages/CalendarPage'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '')
 
 type View = 'login' | 'dashboard' | 'profile' | 'profileCompleted' | 'calendar'
 

@@ -3,7 +3,7 @@ import type { User } from '../types'
 import AppFooter from '../components/AppFooter'
 import styles from './CalendarPage.module.css'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '')
 
 interface CalendarPageProps {
   user: User
