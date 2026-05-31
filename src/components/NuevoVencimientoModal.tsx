@@ -16,6 +16,7 @@ export default function NuevoVencimientoModal({ isoDate, onClose, onCreated }: N
   const [fecha, setFecha] = useState(isoDate)
   const [notifEmail, setNotifEmail] = useState(false)
   const [notifSms, setNotifSms] = useState(false)
+  const [recurrente, setRecurrente] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -64,6 +65,7 @@ export default function NuevoVencimientoModal({ isoDate, onClose, onCreated }: N
           fechaVencimiento: fecha,
           notificarEmail: notifEmail,
           notificarSms: notifSms,
+          recurrente,
         }),
       })
 
@@ -142,6 +144,18 @@ export default function NuevoVencimientoModal({ isoDate, onClose, onCreated }: N
                 placeholder="0"
               />
             </div>
+          </div>
+
+          <div className={styles.checkboxGroup}>
+            <p className={styles.checkboxGroupTitle}>Recurrencia</p>
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                checked={recurrente}
+                onChange={(e) => setRecurrente(e.target.checked)}
+              />
+              Repetir todos los meses del año
+            </label>
           </div>
 
           <div className={styles.checkboxGroup}>

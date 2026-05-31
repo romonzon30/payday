@@ -187,7 +187,7 @@ router.get("/vencimientos", authMiddleware, async (req, res) => {
 // POST /api/user/vencimientos — crear un vencimiento custom
 router.post("/vencimientos", authMiddleware, async (req, res) => {
   try {
-    const { titulo, descripcion, monto, fechaVencimiento, notificarEmail, notificarSms } = req.body;
+    const { titulo, descripcion, monto, fechaVencimiento, notificarEmail, notificarSms, recurrente } = req.body;
 
     if (!titulo || !titulo.trim()) {
       return res.status(400).json({ message: "Título requerido" });
@@ -196,21 +196,45 @@ router.post("/vencimientos", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Fecha requerida" });
     }
 
-    const fecha = new Date(fechaVencimiento);
+    const fecha = new Date(fechaVencimiento + "T12:00:00");
     if (Number.isNaN(fecha.getTime())) {
       return res.status(400).json({ message: "Fecha inválida" });
     }
 
-    const venc = await Vencimiento.create({
+    const baseData = {
       userId: req.user._id,
       tipo: "custom",
       titulo: titulo.trim(),
       descripcion: (descripcion || titulo).trim(),
       monto: Number(monto) || 0,
-      fechaVencimiento: fecha,
       estado: "pendiente",
       notificarEmail: !!notificarEmail,
       notificarSms: !!notificarSms,
+      recurrente: !!recurrente,
+    };
+
+    if (recurrente) {
+      const day = fecha.getDate();
+      const year = fecha.getFullYear();
+      const startMonth = fecha.getMonth();
+      const docs = [];
+
+      for (let m = startMonth; m < 12; m++) {
+        const lastDayOfMonth = new Date(year, m + 1, 0).getDate();
+        const vencDay = Math.min(day, lastDayOfMonth);
+        docs.push({
+          ...baseData,
+          fechaVencimiento: new Date(year, m, vencDay, 12, 0, 0),
+        });
+      }
+
+      const created = await Vencimiento.insertMany(docs);
+      return res.status(201).json({ vencimientos: created });
+    }
+
+    const venc = await Vencimiento.create({
+      ...baseData,
+      fechaVencimiento: fecha,
     });
 
     res.status(201).json({ vencimiento: venc });

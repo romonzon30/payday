@@ -16,9 +16,13 @@ const VencimientoSchema = new mongoose.Schema(
       default: "pendiente",
     },
     recordatorioEnviado: { type: Boolean, default: false },
+    notif48hEnviada: { type: Boolean, default: false },
+    notif24hEnviada: { type: Boolean, default: false },
+    notifVencidoEnviada: { type: Boolean, default: false },
     notaUsuario: { type: String, default: "" },
     notificarEmail: { type: Boolean, default: false },
     notificarSms: { type: Boolean, default: false },
+    recurrente: { type: Boolean, default: false },
   },
   { timestamps: { createdAt: "creadoEn", updatedAt: false } }
 );

@@ -90,6 +90,29 @@
   background: rgba(37, 99, 235, 0.06);
 }
 
+/* Remove native number spinners */
+.input[type='number']::-webkit-inner-spin-button,
+.input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* Remove native date picker icon */
+.input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.input[type='date']::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
 .textarea {
   resize: vertical;
   min-height: 72px;
@@ -128,10 +151,52 @@
 }
 
 .checkboxLabel input {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--color-dark-brand, #2563eb);
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(195, 198, 215, 0.3);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
   cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.checkboxLabel input:hover {
+  border-color: var(--color-dark-brand, #2563eb);
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.checkboxLabel input:checked {
+  background: var(--color-dark-brand, #2563eb);
+  border-color: var(--color-dark-brand, #2563eb);
+  animation: checkPop 0.3s ease;
+}
+
+.checkboxLabel input:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg);
+  animation: checkDraw 0.2s ease 0.05s both;
+}
+
+@keyframes checkPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes checkDraw {
+  0% { opacity: 0; transform: rotate(45deg) scale(0); }
+  100% { opacity: 1; transform: rotate(45deg) scale(1); }
 }
 
 .error {
@@ -170,7 +235,8 @@
 
 .btnPrimary {
   background: var(--color-dark-brand, #2563eb);
-  color: white;
+  color: #0a1628;
+  font-weight: 700;
 }
 
 .btnPrimary:hover {

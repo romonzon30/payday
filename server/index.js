@@ -8,6 +8,7 @@ require("dotenv").config({ path: path.join(__dirname, ".env") });
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/user");
 const ConfiguracionAfip = require("./models/ConfiguracionAfip");
+const { startNotificationScheduler } = require("./services/notificationScheduler");
 
 const categoriasAfip = [
   { categoria: "A", montoMensual: 1867.50, incluyeObraSocial: false, incluyeJubilacion: false, limiteFacturacion: 748382.07 },
@@ -58,9 +59,9 @@ async function start() {
   if (!connected) {
     try {
       const { MongoMemoryServer } = require("mongodb-memory-server");
-      const mongod = await MongoMemoryServer.create({ instance: { dbName: "monotributo_saas" } });
+      const mongod = await MongoMemoryServer.create({ instance: { port: 27018, dbName: "monotributo_saas" } });
       await mongoose.connect(mongod.getUri());
-      console.log("MongoDB Memory conectado");
+      console.log("MongoDB Memory conectado en:", mongod.getUri());
     } catch {
       console.error("MONGO_URI no definida y mongodb-memory-server no disponible. Abortando.");
       process.exit(1);
@@ -87,6 +88,11 @@ async function start() {
 
   app.listen(port, () => {
     console.log(`Servidor corriendo en puerto ${port}`);
+    if (process.env.SMTP_HOST) {
+      startNotificationScheduler();
+    } else {
+      console.log("[NOTIF] SMTP no configurado, scheduler deshabilitado");
+    }
   });
 }
 
