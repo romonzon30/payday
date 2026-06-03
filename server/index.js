@@ -11,24 +11,37 @@ const ConfiguracionAfip = require("./models/ConfiguracionAfip");
 const { startNotificationScheduler } = require("./services/notificationScheduler");
 
 const categoriasAfip = [
-  { categoria: "A", montoMensual: 1867.5, incluyeObraSocial: false, incluyeJubilacion: false, limiteFacturacion: 748382.07 },
-  { categoria: "B", montoMensual: 2215.3, incluyeObraSocial: false, incluyeJubilacion: false, limiteFacturacion: 1122573.1 },
-  { categoria: "C", montoMensual: 3659.07, incluyeObraSocial: true, incluyeJubilacion: true, limiteFacturacion: 1870955.17 },
-  { categoria: "D", montoMensual: 7947.2, incluyeObraSocial: true, incluyeJubilacion: true, limiteFacturacion: 2806432.76 },
-  { categoria: "E", montoMensual: 10158.75, incluyeObraSocial: true, incluyeJubilacion: true, limiteFacturacion: 3741910.34 },
+  { categoria: "A", montoMensual: 42386.74, incluyeObraSocial: false, incluyeJubilacion: false, limiteFacturacion: 748382.07 },
+  { categoria: "B", montoMensual: 48250.78, incluyeObraSocial: false, incluyeJubilacion: false, limiteFacturacion: 1122573.10 },
+  { categoria: "C", montoMensual: 56501.85, incluyeObraSocial: true, incluyeJubilacion: true, limiteFacturacion: 1870955.17 },
+  { categoria: "D", montoMensual: 72414.10, incluyeObraSocial: true, incluyeJubilacion: true, limiteFacturacion: 2806432.76 },
+  { categoria: "E", montoMensual: 102537.97, incluyeObraSocial: true, incluyeJubilacion: true, limiteFacturacion: 3741910.34 },
+  { categoria: "F", montoMensual: 129045.32, incluyeObraSocial: true, incluyeJubilacion: true, limiteFacturacion: 4677387.93 },
+  { categoria: "G", montoMensual: 197108.23, incluyeObraSocial: true, incluyeJubilacion: true, limiteFacturacion: 5612865.51 },
+  { categoria: "H", montoMensual: 447346.93, incluyeObraSocial: true, incluyeJubilacion: true, limiteFacturacion: 6548343.10 },
+  { categoria: "I", montoMensual: 824802.26, incluyeObraSocial: true, incluyeJubilacion: true, limiteFacturacion: 9354758.68 },
+  { categoria: "J", montoMensual: 999007.65, incluyeObraSocial: true, incluyeJubilacion: true, limiteFacturacion: 11241282.00 },
+  { categoria: "K", montoMensual: 1381687.90, incluyeObraSocial: true, incluyeJubilacion: true, limiteFacturacion: 15000000.00 },
 ]
  
 async function seedCategorias() {
-  const count = await ConfiguracionAfip.countDocuments();
-  if (count === 0) {
-    const docs = categoriasAfip.map((cat) => ({
-      ...cat,
-      vigenciaDesde: new Date("2025-01-01"),
-      vigenciaHasta: null,
-    }));
-    await ConfiguracionAfip.insertMany(docs);
-    console.log(`Seed: ${docs.length} categorías AFIP insertadas`);
+  for (const categoriaData of categoriasAfip) {
+    await ConfiguracionAfip.updateOne(
+      { categoria: categoriaData.categoria },
+      {
+        $set: {
+          montoMensual: categoriaData.montoMensual,
+          incluyeObraSocial: categoriaData.incluyeObraSocial,
+          incluyeJubilacion: categoriaData.incluyeJubilacion,
+          limiteFacturacion: categoriaData.limiteFacturacion,
+          vigenciaDesde: new Date("2025-01-01"),
+          vigenciaHasta: null,
+        },
+      },
+      { upsert: true }
+    );
   }
+  console.log(`Seed: ${categoriasAfip.length} categorías AFIP actualizadas/insertadas`);
 }
 
 async function start() {
