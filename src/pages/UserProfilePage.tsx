@@ -68,6 +68,13 @@ export default function UserProfilePage({ user, onBack, onUserUpdated, onProfile
     setSuccess('Perfil actualizado correctamente.')
   }
 }
+        const isNewCuil = cuit.trim() && !user.cuit
+        onUserUpdated(data.user)
+        if (isNewCuil) {
+          onProfileCompleted(data.user)
+        } else {
+          setSuccess('Perfil actualizado correctamente.')
+        }
       } else {
         setError(data.message || 'Error al actualizar')
       }

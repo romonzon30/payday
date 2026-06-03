@@ -31,6 +31,7 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
 
 const createMonotributoDueDates = require("../utils/createMonotributoDueDates");
 
@@ -59,4 +60,6 @@ router.post("/generate-monotributo", auth, async (req, res) => {
   }
 });
 
+=======
+>>>>>>> e8835b37e79a97f57ed09c8d83340d8b87808e07
 module.exports = router;
