@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-Process -Id 27108)",
+      "PowerShell(wmic process where processid=27108 get commandline 2>&1)"
+    ]
+  }
+}

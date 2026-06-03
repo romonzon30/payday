@@ -1,0 +1,100 @@
+{
+  "database": "monotributo_saas",
+  "engine": "MongoDB",
+  "collections": {
+    "users": {
+      "_description": "Usuario registrado via Google. Núcleo de toda la app.",
+      "fields": {
+        "_id":                   { "type": "ObjectId",  "pk": true,  "desc": "ID único generado por Mongo" },
+        "googleUid":             { "type": "String",    "unique": true, "required": true, "desc": "UID de Google OAuth" },
+        "email":                 { "type": "String",    "unique": true, "required": true, "desc": "Email de la cuenta Google" },
+        "emailNotificaciones":   { "type": "String",    "required": true, "desc": "Email donde llegan los avisos (puede diferir)" },
+        "nombreCompleto":        { "type": "String",    "required": true, "desc": "Nombre completo ingresado en el registro" },
+        "dni":                   { "type": "String",    "unique": true, "required": true, "desc": "DNI del contribuyente" },
+        "cuit":                  { "type": "String",    "desc": "CUIT formateado XX-XXXXXXXX-X" },
+        "avatarUrl":             { "type": "String",    "desc": "URL de foto de perfil de Google" },
+        "categoriaMonotributo":  { "type": "String",    "enum": ["A","B","C","D","E","F","G","H","I","J","K"], "desc": "Categoría vigente del contribuyente" },
+        "fechaInscripcion":      { "type": "Date",      "desc": "Fecha de alta en AFIP" },
+        "activo":                { "type": "Boolean",   "default": true, "desc": "Soft-delete / baja temporal" },
+        "creadoEn":              { "type": "Date",      "desc": "Timestamp de alta en el sistema" },
+        "actualizadoEn":         { "type": "Date",      "desc": "Timestamp de última modificación" }
+      }
+    },
+
+    "impuestos": {
+      "_description": "Cada obligación fiscal del usuario por período. Un usuario puede tener múltiples por mes (cuota + obra social + jubilación).",
+      "fields": {
+        "_id":         { "type": "ObjectId", "pk": true,  "desc": "ID único" },
+        "userId":      { "type": "ObjectId", "fk": "users._id", "required": true, "desc": "Dueño del registro" },
+        "tipo":        { "type": "String",   "required": true, "enum": ["monotributo","obra_social","jubilacion","ingresos_brutos","otro"], "desc": "Tipo de impuesto" },
+        "descripcion": { "type": "String",   "desc": "Texto descriptivo para mostrar en UI" },
+        "monto":       { "type": "Number",   "required": true, "desc": "Importe a pagar" },
+        "moneda":      { "type": "String",   "enum": ["ARS","USD"], "default": "ARS", "desc": "Moneda del monto" },
+        "estado":      { "type": "String",   "enum": ["vigente","anulado"], "default": "vigente", "desc": "Estado del registro" },
+        "periodo":     { "type": "String",   "required": true, "desc": "Período en formato YYYY-MM (ej: 2025-05)" },
+        "creadoEn":    { "type": "Date",     "desc": "Timestamp de creación" }
+      }
+    },
+
+    "vencimientos": {
+      "_description": "Cada fecha de vencimiento de un impuesto. Es lo que alimenta el calendario.",
+      "fields": {
+        "_id":                  { "type": "ObjectId", "pk": true, "desc": "ID único" },
+        "impuestoId":           { "type": "ObjectId", "fk": "impuestos._id", "required": true, "desc": "Impuesto al que pertenece" },
+        "userId":               { "type": "ObjectId", "fk": "users._id",     "required": true, "desc": "Dueño (desnormalizado para queries rápidas)" },
+        "fechaVencimiento":     { "type": "Date",     "required": true, "index": true, "desc": "Fecha límite de pago" },
+        "fechaPago":            { "type": "Date",     "nullable": true, "desc": "Fecha en que el usuario registró el pago" },
+        "estado":               { "type": "String",   "enum": ["pendiente","pagado","vencido"], "default": "pendiente", "desc": "Estado actual del vencimiento" },
+        "recordatorioEnviado":  { "type": "Boolean",  "default": false, "desc": "Flag para no reenviar el mismo aviso" },
+        "notaUsuario":          { "type": "String",   "default": "", "desc": "Comentario libre del usuario" },
+        "creadoEn":             { "type": "Date",     "desc": "Timestamp de creación" }
+      }
+    },
+
+    "notificaciones": {
+      "_description": "Centro de notificaciones. Almacena tanto las in-app como las enviadas por email.",
+      "fields": {
+        "_id":       { "type": "ObjectId", "pk": true, "desc": "ID único" },
+        "userId":    { "type": "ObjectId", "fk": "users._id", "required": true, "index": true, "desc": "Destinatario" },
+        "tipo":      { "type": "String",   "enum": ["sistema","recordatorio","alerta","promo"], "required": true, "desc": "Categoría de la notificación" },
+        "titulo":    { "type": "String",   "required": true, "desc": "Título corto que aparece en el centro" },
+        "cuerpo":    { "type": "String",   "required": true, "desc": "Cuerpo completo del mensaje" },
+        "leida":     { "type": "Boolean",  "default": false, "index": true, "desc": "Si el usuario ya la leyó" },
+        "canal":     { "type": "String",   "enum": ["inApp","email","ambos"], "default": "inApp", "desc": "Por dónde se entregó" },
+        "metadatos": { "type": "Object",   "default": {}, "desc": "Payload libre: monto, días restantes, etc." },
+        "refId":     { "type": "ObjectId", "nullable": true, "desc": "Referencia al vencimiento o impuesto que la originó" },
+        "creadoEn":  { "type": "Date",     "index": true, "desc": "Timestamp de creación (orden del centro)" },
+        "leidaEn":   { "type": "Date",     "nullable": true, "desc": "Cuándo fue marcada como leída" }
+      }
+    },
+
+    "sesiones": {
+      "_description": "Refresh tokens de Google OAuth. TTL automático via índice de Mongo.",
+      "fields": {
+        "_id":          { "type": "ObjectId", "pk": true, "desc": "ID único" },
+        "userId":       { "type": "ObjectId", "fk": "users._id", "required": true, "desc": "Usuario de la sesión" },
+        "refreshToken": { "type": "String",   "unique": true, "required": true, "desc": "Token de refresco de Google" },
+        "dispositivo":  { "type": "String",   "desc": "User-Agent / descripción del browser" },
+        "ip":           { "type": "String",   "desc": "IP desde la que se inició sesión" },
+        "expiraEn":     { "type": "Date",     "index": "TTL", "desc": "Mongo elimina el doc automáticamente al vencer" },
+        "creadoEn":     { "type": "Date",     "desc": "Timestamp de creación" }
+      }
+    },
+
+    "configuracion_afip": {
+      "_description": "Seed data con las categorías AFIP vigentes. Se actualiza cuando AFIP modifica los valores.",
+      "fields": {
+        "_id":                { "type": "ObjectId", "pk": true, "desc": "ID único" },
+        "categoria":          { "type": "String",   "unique": true, "required": true, "desc": "Letra de categoría A-K" },
+        "montoMensual":       { "type": "Number",   "required": true, "desc": "Cuota mensual total en ARS" },
+        "incluyeObrasocial":  { "type": "Boolean",  "desc": "Si el monto incluye aporte de obra social" },
+        "incluyeJubilacion":  { "type": "Boolean",  "desc": "Si el monto incluye aporte jubilatorio" },
+        "limiteFacturacion":  { "type": "Number",   "desc": "Tope anual de facturación para esta categoría" },
+        "moneda":             { "type": "String",   "default": "ARS", "desc": "Moneda de los valores" },
+        "vigenciaDesde":      { "type": "Date",     "required": true, "desc": "Desde cuándo aplican estos valores" },
+        "vigenciaHasta":      { "type": "Date",     "nullable": true, "desc": "null = vigente actualmente" },
+        "actualizadoEn":      { "type": "Date",     "desc": "Última actualización del registro" }
+      }
+    }
+  }
+}
