@@ -41,6 +41,9 @@ async function generarVencimientosAnio(userId, cuit, categoria, year) {
 async function ensureVencimientosAnio(user, year) {
   if (!user.perfilCompleto || !user.cuit || !user.categoriaMonotributo) return;
 
+  const config = await ConfiguracionAfip.findOne({ categoria: user.categoriaMonotributo });
+  const expectedMonto = config ? config.montoMensual : 0;
+
   const yearStart = new Date(year, 0, 1);
   const yearEnd = new Date(year + 1, 0, 1);
   const existing = await Vencimiento.find({
@@ -54,7 +57,11 @@ async function ensureVencimientosAnio(user, year) {
     expectedDates.push(adjustToNextBusinessDay(new Date(year, month, 20, 12, 0, 0)).toISOString());
   }
 
-  const validCount = existing.filter((doc) => expectedDates.includes(new Date(doc.fechaVencimiento).toISOString())).length;
+  const validCount = existing.filter((doc) => {
+    const docDate = new Date(doc.fechaVencimiento).toISOString();
+    return expectedDates.includes(docDate) && Number(doc.monto) === Number(expectedMonto);
+  }).length;
+
   if (validCount !== 12) {
     await Vencimiento.deleteMany({
       userId: user._id,
