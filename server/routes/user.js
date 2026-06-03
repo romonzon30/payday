@@ -3,17 +3,6 @@ const authMiddleware = require("../middleware/auth");
 const ConfiguracionAfip = require("../models/ConfiguracionAfip");
 const Vencimiento = require("../models/Vencimiento");
 
-// Calcula el día de vencimiento según el penúltimo dígito del CUIL
-function calcVencDay(cuit) {
-  const cuitClean = cuit.replace(/-/g, "");
-  const digit = parseInt(cuitClean.slice(-2, -1), 10);
-  if (digit <= 1) return 13;
-  if (digit <= 3) return 15;
-  if (digit <= 5) return 17;
-  if (digit <= 7) return 19;
-  return 21;
-}
-
 // Ajusta una fecha al primer día hábil igual o posterior
 function adjustToNextBusinessDay(date) {
   const d = new Date(date);
@@ -54,13 +43,25 @@ async function ensureVencimientosAnio(user, year) {
 
   const yearStart = new Date(year, 0, 1);
   const yearEnd = new Date(year + 1, 0, 1);
-  const count = await Vencimiento.countDocuments({
+  const existing = await Vencimiento.find({
     userId: user._id,
     tipo: "monotributo",
     fechaVencimiento: { $gte: yearStart, $lt: yearEnd },
-  });
+  }).lean();
 
-  if (count === 0) {
+  const expectedDates = [];
+  for (let month = 0; month < 12; month++) {
+    expectedDates.push(adjustToNextBusinessDay(new Date(year, month, 20, 12, 0, 0)).toISOString());
+  }
+
+  const validCount = existing.filter((doc) => expectedDates.includes(new Date(doc.fechaVencimiento).toISOString())).length;
+  if (validCount !== 12) {
+    await Vencimiento.deleteMany({
+      userId: user._id,
+      tipo: "monotributo",
+      fechaVencimiento: { $gte: yearStart, $lt: yearEnd },
+      estado: "pendiente",
+    });
     await generarVencimientosAnio(user._id, user.cuit, user.categoriaMonotributo, year);
   }
 }
