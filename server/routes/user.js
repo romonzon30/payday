@@ -37,6 +37,25 @@ async function generarVencimientosAnio(userId, cuit, categoria, year) {
   await Vencimiento.insertMany(docs);
 }
 
+async function buildExpectedMonotributoVencimientos(categoria, year) {
+  const docs = [];
+  const config = await ConfiguracionAfip.findOne({ categoria });
+  const monto = config ? config.montoMensual : 0;
+
+  for (let month = 0; month < 12; month++) {
+    const rawDate = new Date(year, month, 20, 12, 0, 0);
+    const fechaAjustada = adjustToNextBusinessDay(rawDate);
+    docs.push({
+      categoria,
+      monto,
+      fechaVencimiento: fechaAjustada,
+      mes: month + 1,
+    });
+  }
+
+  return docs;
+}
+
 // Asegura que existan los vencimientos monotributo del año solicitado
 async function ensureVencimientosAnio(user, year) {
   if (!user.perfilCompleto || !user.cuit || !user.categoriaMonotributo) return;
@@ -72,6 +91,40 @@ async function ensureVencimientosAnio(user, year) {
     await generarVencimientosAnio(user._id, user.cuit, user.categoriaMonotributo, year);
   }
 }
+
+// GET /api/user/debug — devuelve datos de debug para monotributo.
+router.get("/debug", authMiddleware, async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user.perfilCompleto || !user.cuit || !user.categoriaMonotributo) {
+      return res.status(400).json({ message: "Perfil incompleto: cuit/categoria requeridos" });
+    }
+
+    const config = await ConfiguracionAfip.findOne({ categoria: user.categoriaMonotributo });
+    const expected = await buildExpectedMonotributoVencimientos(user.categoriaMonotributo, new Date().getFullYear());
+    const actual = await Vencimiento.find({
+      userId: user._id,
+      tipo: "monotributo",
+      fechaVencimiento: {
+        $gte: new Date(new Date().getFullYear(), 0, 1),
+        $lt: new Date(new Date().getFullYear() + 1, 0, 1),
+      },
+    }).lean();
+
+    return res.json({
+      user: {
+        categoriaMonotributo: user.categoriaMonotributo,
+        cuit: user.cuit,
+      },
+      config,
+      expected,
+      actual,
+    });
+  } catch (err) {
+    console.error("Error en /debug:", err.message);
+    res.status(500).json({ message: "Error de debug" });
+  }
+});
 
 // GET /api/user/me — devuelve el usuario autenticado.
 // Si tiene CUIL + categoría, asegura vencimientos del año actual.
