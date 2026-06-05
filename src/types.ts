@@ -11,4 +11,6 @@ export interface User {
   fechaInscripcion?: string
   perfilCompleto: boolean
   activo: boolean
+  inicioActividad?: 'normal' | 'primer_anio' | 'segundo_anio'
+  personasACargo?: number
 }

@@ -15,7 +15,6 @@ export default function NuevoVencimientoModal({ isoDate, onClose, onCreated }: N
   const [monto, setMonto] = useState('')
   const [fecha, setFecha] = useState(isoDate)
   const [notifEmail, setNotifEmail] = useState(false)
-  const [notifSms, setNotifSms] = useState(false)
   const [recurrente, setRecurrente] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -64,7 +63,6 @@ export default function NuevoVencimientoModal({ isoDate, onClose, onCreated }: N
           monto: monto ? Number(monto) : 0,
           fechaVencimiento: fecha,
           notificarEmail: notifEmail,
-          notificarSms: notifSms,
           recurrente,
         }),
       })
@@ -167,14 +165,6 @@ export default function NuevoVencimientoModal({ isoDate, onClose, onCreated }: N
                 onChange={(e) => setNotifEmail(e.target.checked)}
               />
               Notificar por email
-            </label>
-            <label className={styles.checkboxLabel}>
-              <input
-                type="checkbox"
-                checked={notifSms}
-                onChange={(e) => setNotifSms(e.target.checked)}
-              />
-              Notificar por SMS
             </label>
           </div>
 
