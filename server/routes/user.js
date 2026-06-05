@@ -182,17 +182,7 @@ router.put("/profile", authMiddleware, async (req, res) => {
       }
 
       const currentYear = new Date().getFullYear();
-      const existing = await Vencimiento.countDocuments({
-        userId: user._id,
-        tipo: "monotributo",
-        fechaVencimiento: {
-          $gte: new Date(currentYear, 0, 1),
-          $lt: new Date(currentYear + 1, 0, 1),
-        },
-      });
-      if (existing === 0) {
-        await generarVencimientosAnio(user._id, user.cuit, user.categoriaMonotributo, currentYear);
-      }
+      await ensureVencimientosAnio(user, currentYear);
     }
 
     res.json({ user });
