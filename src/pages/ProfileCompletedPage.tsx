@@ -13,20 +13,23 @@ const MESES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ]
 
-function getVencimientoDay(cuit: string): number {
-  const last = parseInt(cuit.replace(/-/g, '').slice(-2, -1), 10)
-  if (last <= 1) return 13
-  if (last <= 3) return 15
-  if (last <= 5) return 17
-  if (last <= 7) return 19
-  return 21
+function adjustToNextBusinessDay(date: Date): Date {
+  const d = new Date(date)
+  while (d.getDay() === 0 || d.getDay() === 6) {
+    d.setDate(d.getDate() + 1)
+  }
+  return d
+}
+
+function getMonotributoVencimientoDay(year: number, month: number): number {
+  const fecha = adjustToNextBusinessDay(new Date(year, month, 20, 12, 0, 0))
+  return fecha.getDate()
 }
 
 export default function ProfileCompletedPage({ user, onGoToDashboard }: ProfileCompletedPageProps) {
   const today = new Date()
   const currentMonth = today.getMonth()
   const currentYear = today.getFullYear()
-  const vencDay = user.cuit ? getVencimientoDay(user.cuit) : 20
 
   return (
     <div className={styles.page}>
@@ -79,6 +82,7 @@ export default function ProfileCompletedPage({ user, onGoToDashboard }: ProfileC
               {MESES.map((mes, i) => {
                 const isPast = i < currentMonth
                 const isCurrent = i === currentMonth
+                const vencDay = getMonotributoVencimientoDay(currentYear, i)
                 return (
                   <div
                     key={mes}
@@ -86,7 +90,7 @@ export default function ProfileCompletedPage({ user, onGoToDashboard }: ProfileC
                   >
                     <span className={styles.vencMes}>{mes.slice(0, 3)}</span>
                     <span className={styles.vencDay}>{vencDay}</span>
-                    <span className={styles.vencYear}>{i >= currentMonth ? currentYear : currentYear}</span>
+                    <span className={styles.vencYear}>{currentYear}</span>
                   </div>
                 )
               })}
