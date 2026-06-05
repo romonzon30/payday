@@ -1,18 +1,22 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { User } from './types'
+import { useTheme } from './hooks/useTheme'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import UserProfilePage from './pages/UserProfilePage'
 import ProfileCompletedPage from './pages/ProfileCompletedPage'
 import CalendarPage from './pages/CalendarPage'
 
+import ImpuestosPage from './pages/ImpuestosPage'
+
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '')
 
-type View = 'login' | 'dashboard' | 'profile' | 'profileCompleted' | 'calendar'
+type View = 'login' | 'dashboard' | 'profile' | 'profileCompleted' | 'calendar' | 'impuestos'
 
 export default function App() {
+  useTheme() // initialize theme from localStorage on mount
 
-  
+
   // View actual
   const [view, setView] = useState<View>('login')
   // User object
@@ -74,7 +78,9 @@ export default function App() {
     return (
       <UserProfilePage
         user={user}
-        onBack={() => setView('dashboard')}
+        onBack={() => setView(user.perfilCompleto ? 'calendar' : 'dashboard')}
+        onGoToCalendar={() => setView('calendar')}
+        onGoToImpuestos={() => setView('impuestos')}
         onUserUpdated={handleUserUpdated}
         onProfileCompleted={(updatedUser: User) => {
           setUser(updatedUser)
@@ -91,6 +97,19 @@ export default function App() {
         user={user}
         onBack={() => setView('dashboard')}
         onGoToProfile={() => setView('profile')}
+        onGoToImpuestos={() => setView('impuestos')}
+        onLogout={handleLogout}
+      />
+    )
+  }
+
+  if (view === 'impuestos' && user) {
+    return (
+      <ImpuestosPage
+        user={user}
+        onGoToCalendar={() => setView('calendar')}
+        onGoToDashboard={() => setView('dashboard')}
+        onGoToProfile={() => setView('profile')}
         onLogout={handleLogout}
       />
     )
@@ -102,6 +121,7 @@ export default function App() {
         user={user}
         onGoToProfile={() => setView('profile')}
         onGoToCalendar={() => setView('calendar')}
+        onGoToImpuestos={() => setView('impuestos')}
         onLogout={handleLogout}
       />
     )

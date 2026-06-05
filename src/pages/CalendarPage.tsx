@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { User } from '../types'
 import AppFooter from '../components/AppFooter'
+import AppSidebar from '../components/AppSidebar'
 import NuevoVencimientoModal from '../components/NuevoVencimientoModal'
 import styles from './CalendarPage.module.css'
 
@@ -10,6 +11,7 @@ interface CalendarPageProps {
   user: User
   onBack: () => void
   onGoToProfile: () => void
+  onGoToImpuestos: () => void
   onLogout: () => void
 }
 
@@ -22,7 +24,6 @@ interface Vencimiento {
   fechaVencimiento: string
   estado: 'al_dia' | 'pendiente' | 'vencido'
   notificarEmail?: boolean
-  notificarSms?: boolean
 }
 
 const DAYS_HEADER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -66,6 +67,14 @@ function formatMonto(monto: number): string {
   return '$ ' + monto.toLocaleString('es-AR', { minimumFractionDigits: 0 })
 }
 
+function getUTCDay(isoString: string) {
+  return new Date(isoString).getUTCDate()
+}
+
+function getUTCMonthIndex(isoString: string) {
+  return new Date(isoString).getUTCMonth()
+}
+
 function statusLabel(estado: string): string {
   if (estado === 'al_dia') return 'Al día'
   if (estado === 'pendiente') return 'Pendiente'
@@ -78,7 +87,7 @@ function statusClass(estado: string): string {
   return styles.statusVencido
 }
 
-export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: CalendarPageProps) {
+export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpuestos, onLogout }: CalendarPageProps) {
   const today = new Date()
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
@@ -86,6 +95,7 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [modalDate, setModalDate] = useState('')
+  const [selectedVenc, setSelectedVenc] = useState<Vencimiento | null>(null)
 
   const fetchVencimientos = useCallback(async (year: number, month: number) => {
     setLoading(true)
@@ -153,6 +163,22 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
     }
   }
 
+  async function deleteVencimiento(v: Vencimiento) {
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch(`${API_URL}/api/user/vencimientos/${v._id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        setSelectedVenc(null)
+        fetchVencimientos(currentYear, currentMonth)
+      }
+    } catch {
+      // silently fail
+    }
+  }
+
   function goToday() {
     setCurrentMonth(today.getMonth())
     setCurrentYear(today.getFullYear())
@@ -179,40 +205,25 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
   const calendarDays = getCalendarDays(currentYear, currentMonth)
   const todayDay = today.getMonth() === currentMonth && today.getFullYear() === currentYear ? today.getDate() : -1
 
-  // Map vencimiento dates to days
+  // Map vencimiento dates to days (use UTC to avoid timezone day-offset)
   const vencByDay: Record<number, Vencimiento[]> = {}
   for (const v of vencimientos) {
-    const d = new Date(v.fechaVencimiento).getDate()
+    const d = new Date(v.fechaVencimiento).getUTCDate()
     if (!vencByDay[d]) vencByDay[d] = []
     vencByDay[d].push(v)
   }
 
   return (
     <div className={styles.page}>
-      {/* Sidebar */}
-      <aside className={styles.sidebar}>
-        <span className={styles.brand}>PAYDAY</span>
-        <nav className={styles.nav}>
-          <button className={styles.navItem} onClick={onBack}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-            Inicio
-          </button>
-          <button className={`${styles.navItem} ${styles.navItemActive}`}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-            Calendario
-          </button>
-          <button className={styles.navItem} onClick={onGoToProfile}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12 1v2m0 18v2m-9-11h2m18 0h2m-3.636-6.364-1.414 1.414M6.05 17.95l-1.414 1.414m0-12.728 1.414 1.414m11.314 11.314 1.414 1.414" /></svg>
-            Configuración
-          </button>
-        </nav>
-        <div className={styles.sidebarBottom}>
-          <button className={styles.navItem} onClick={onLogout}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-            Salir
-          </button>
-        </div>
-      </aside>
+      <AppSidebar
+        user={user}
+        activeView="calendar"
+        onGoToDashboard={onBack}
+        onGoToCalendar={() => {}}
+        onGoToImpuestos={onGoToImpuestos}
+        onGoToProfile={onGoToProfile}
+        onLogout={onLogout}
+      />
 
       {/* Main Content */}
       <div className={styles.mainWrapper}>
@@ -221,17 +232,6 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
           <div>
             <h1 className={styles.pageTitle}>{MONTH_NAMES[currentMonth]} {currentYear}</h1>
             <p className={styles.pageSubtitle}>Monotributo y Vencimientos AFIP</p>
-          </div>
-          <div className={styles.topbarRight}>
-            <button className={styles.profileBtn} onClick={onGoToProfile}>
-              {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt="" className={styles.avatar} referrerPolicy="no-referrer" />
-              ) : (
-                <span className={styles.avatarFallback}>
-                  {user.nombreCompleto.charAt(0).toUpperCase()}
-                </span>
-              )}
-            </button>
           </div>
         </header>
 
@@ -300,7 +300,21 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
             </div>
 
             {loading ? (
-              <div className={styles.vencLoading}>Cargando...</div>
+              <div className={styles.vencList}>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className={styles.skeletonVencCard}>
+                    <div className={styles.skeletonVencTop}>
+                      <div className={styles.skeletonVencTitle} />
+                      <div className={styles.skeletonVencBadge} />
+                    </div>
+                    <div className={styles.skeletonVencDate} />
+                    <div className={styles.skeletonVencBottom}>
+                      <div className={styles.skeletonVencMonto} />
+                      <div className={styles.skeletonVencBtn} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : vencimientos.length === 0 ? (
               <div className={styles.vencEmpty}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -316,16 +330,14 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
             ) : (
               <div className={styles.vencList}>
                 {vencimientos.map(v => {
-                  const vDate = new Date(v.fechaVencimiento)
-                  const dayNum = vDate.getDate()
-                  const monthShort = MONTH_NAMES[vDate.getMonth()].slice(0, 3)
-                  const isPast = vDate < today
+                  const dayNum = getUTCDay(v.fechaVencimiento)
+                  const monthShort = MONTH_NAMES[getUTCMonthIndex(v.fechaVencimiento)].slice(0, 3)
+                  const isPast = new Date(v.fechaVencimiento) < today
                   return (
                     <div
                       key={v._id}
                       className={styles.vencCard}
-                      title="Doble click para cambiar estado"
-                      onDoubleClick={() => toggleEstado(v)}
+                      onClick={() => setSelectedVenc(v)}
                     >
                       <div className={styles.vencCardTop}>
                         <div>
@@ -340,15 +352,9 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
                       </p>
                       <div className={styles.vencCardBottom}>
                         <span className={styles.vencCardMonto}>{formatMonto(v.monto)}</span>
-                        {v.estado === 'pendiente' && (
-                          <button className={styles.vencCardBtnBlue} onClick={() => toggleEstado(v)}>Marcar como pagado</button>
-                        )}
-                        {v.estado === 'vencido' && (
-                          <button className={styles.vencCardBtnRed} onClick={() => toggleEstado(v)}>Regularizar</button>
-                        )}
-                        {v.estado === 'al_dia' && (
-                          <button className={styles.vencCardBtnGhost} onClick={() => toggleEstado(v)}>Marcar pendiente</button>
-                        )}
+                        <button className={styles.vencCardBtnDetails} onClick={(e) => { e.stopPropagation(); setSelectedVenc(v) }}>
+                          Ver detalle
+                        </button>
                       </div>
                     </div>
                   )
@@ -376,6 +382,54 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onLogout }: 
           onClose={() => setModalOpen(false)}
           onCreated={handleCreated}
         />
+      )}
+
+      {selectedVenc && (
+        <div className={styles.detailOverlay} onClick={() => setSelectedVenc(null)}>
+          <div className={styles.detailModal} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.detailCloseBtn} onClick={() => setSelectedVenc(null)} aria-label="Cerrar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+
+            <p className={styles.detailType}>{selectedVenc.tipo === 'monotributo' ? 'Monotributo AFIP' : 'Vencimiento custom'}</p>
+            <h3 className={styles.detailTitle}>
+              {selectedVenc.tipo === 'custom' ? (selectedVenc.titulo || selectedVenc.descripcion) : selectedVenc.descripcion}
+            </h3>
+            <span className={`${styles.vencCardStatus} ${statusClass(selectedVenc.estado)}`} style={{ marginBottom: 16, display: 'inline-block' }}>
+              {statusLabel(selectedVenc.estado)}
+            </span>
+
+            <div className={styles.detailMonto}>{formatMonto(selectedVenc.monto)}</div>
+            <p className={styles.detailDate}>
+              {new Date(selectedVenc.fechaVencimiento) < today
+                ? `Venció el ${getUTCDay(selectedVenc.fechaVencimiento)} de ${MONTH_NAMES[getUTCMonthIndex(selectedVenc.fechaVencimiento)]}`
+                : `Vence el ${getUTCDay(selectedVenc.fechaVencimiento)} de ${MONTH_NAMES[getUTCMonthIndex(selectedVenc.fechaVencimiento)]}`}
+            </p>
+
+            <div className={styles.detailActions}>
+              {selectedVenc.estado === 'pendiente' && (
+                <button className={styles.vencCardBtnBlue} onClick={() => { toggleEstado(selectedVenc); setSelectedVenc(null) }}>
+                  ✓ Marcar como pagado
+                </button>
+              )}
+              {selectedVenc.estado === 'vencido' && (
+                <button className={styles.vencCardBtnRed} onClick={() => { toggleEstado(selectedVenc); setSelectedVenc(null) }}>
+                  Regularizar
+                </button>
+              )}
+              {selectedVenc.estado === 'al_dia' && (
+                <button className={styles.vencCardBtnGhost} onClick={() => { toggleEstado(selectedVenc); setSelectedVenc(null) }}>
+                  Marcar como pendiente
+                </button>
+              )}
+              {selectedVenc.tipo === 'custom' && (
+                <button className={styles.detailDeleteBtn} onClick={() => deleteVencimiento(selectedVenc)}>
+                  Eliminar vencimiento
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

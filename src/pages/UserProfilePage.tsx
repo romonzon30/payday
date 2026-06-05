@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { User } from '../types'
+import AppSidebar from '../components/AppSidebar'
 import styles from './UserProfilePage.module.css'
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '')
@@ -7,15 +8,20 @@ const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replac
 interface UserProfilePageProps {
   user: User
   onBack: () => void
+  onGoToCalendar: () => void
+  onGoToImpuestos: () => void
   onUserUpdated: (user: User) => void
   onProfileCompleted: (user: User) => void
   onLogout: () => void
 }
 
-export default function UserProfilePage({ user, onBack, onUserUpdated, onProfileCompleted, onLogout }: UserProfilePageProps) {
+export default function UserProfilePage({ user, onBack, onGoToCalendar, onGoToImpuestos, onUserUpdated, onProfileCompleted, onLogout }: UserProfilePageProps) {
   const [nombreCompleto, setNombreCompleto] = useState(user.nombreCompleto)
   const [cuit, setCuit] = useState(user.cuit || '')
+  const [categoriaMonotributo, setCategoriaMonotributo] = useState(user.categoriaMonotributo || '')
   const [emailNotificaciones, setEmailNotificaciones] = useState(user.emailNotificaciones)
+  const [inicioActividad, setInicioActividad] = useState<'normal' | 'primer_anio' | 'segundo_anio'>(user.inicioActividad || 'normal')
+  const [personasACargo, setPersonasACargo] = useState(user.personasACargo ?? 0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -42,32 +48,16 @@ export default function UserProfilePage({ user, onBack, onUserUpdated, onProfile
         body: JSON.stringify({
           nombreCompleto: nombreCompleto.trim(),
           cuit: cuit.trim() || undefined,
+          categoriaMonotributo: categoriaMonotributo.trim() || undefined,
           emailNotificaciones: emailNotificaciones.trim(),
+          inicioActividad,
+          personasACargo,
         }),
       })
 
       const data = await res.json()
 
       if (res.ok) {
-  const isNewCuil = cuit.trim() && !user.cuit
-
-  if (isNewCuil) {
-    await fetch(`${API_URL}/api/due-dates/generate-monotributo`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-  }
-
-  onUserUpdated(data.user)
-
-  if (isNewCuil) {
-    onProfileCompleted(data.user)
-  } else {
-    setSuccess('Perfil actualizado correctamente.')
-  }
-}
         const isNewCuil = cuit.trim() && !user.cuit
         onUserUpdated(data.user)
         if (isNewCuil) {
@@ -87,23 +77,15 @@ export default function UserProfilePage({ user, onBack, onUserUpdated, onProfile
 
   return (
     <div className={styles.page}>
-      <header className={styles.navbar}>
-        <button className={styles.backBtn} onClick={onBack}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5" />
-            <path d="m12 19-7-7 7-7" />
-          </svg>
-          Volver
-        </button>
-        <span className={styles.brand}>PAYDAY</span>
-        <button className={styles.logoutBtn} onClick={onLogout}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-        </button>
-      </header>
+      <AppSidebar
+        user={user}
+        activeView="profile"
+        onGoToDashboard={onBack}
+        onGoToCalendar={onGoToCalendar}
+        onGoToImpuestos={onGoToImpuestos}
+        onGoToProfile={() => {}}
+        onLogout={onLogout}
+      />
 
       <main className={styles.main}>
         <div className={styles.profileHeader}>
@@ -167,6 +149,29 @@ export default function UserProfilePage({ user, onBack, onUserUpdated, onProfile
           </div>
 
           <div className={styles.field}>
+            <label className={styles.label} htmlFor="categoriaMonotributo">Categoría Monotributo</label>
+            <div className={styles.inputWrapper}>
+              <span className={styles.inputIcon} aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14" />
+                  <path d="M5 12h14" />
+                </svg>
+              </span>
+              <select
+                id="categoriaMonotributo"
+                className={styles.input}
+                value={categoriaMonotributo}
+                onChange={(e) => setCategoriaMonotributo(e.target.value)}
+              >
+                <option value="">Selecciona una categoría</option>
+                {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'].map((categoria) => (
+                  <option key={categoria} value={categoria}>{categoria}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className={styles.field}>
             <label className={styles.label} htmlFor="emailNotificaciones">Email de Notificaciones</label>
             <div className={styles.inputWrapper}>
               <span className={styles.inputIcon} aria-hidden="true">
@@ -192,6 +197,60 @@ export default function UserProfilePage({ user, onBack, onUserUpdated, onProfile
               <span className={styles.afipValue}>{user.categoriaMonotributo}</span>
             </div>
           )}
+
+          {/* Modificadores de precio */}
+          <div className={styles.modSection}>
+            <h2 className={styles.modTitle}>Modificadores del monto</h2>
+            <p className={styles.modSubtitle}>Estos parámetros ajustan el monto mensual generado.</p>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="inicioActividad">Situación de inicio de actividad</label>
+              <div className={styles.inputWrapper}>
+                <span className={styles.inputIcon} aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                </span>
+                <select
+                  id="inicioActividad"
+                  className={styles.input}
+                  value={inicioActividad}
+                  onChange={(e) => setInicioActividad(e.target.value as 'normal' | 'primer_anio' | 'segundo_anio')}
+                >
+                  <option value="normal">Normal (100% del monto)</option>
+                  <option value="primer_anio">Primer año de actividad (50% de descuento)</option>
+                  <option value="segundo_anio">Segundo año de actividad (25% de descuento)</option>
+                </select>
+              </div>
+            </div>
+
+            {['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'].includes(categoriaMonotributo) && (
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="personasACargo">
+                  Personas a cargo en obra social
+                  <span className={styles.labelHint}> — agrega el costo de OS por cada familiar</span>
+                </label>
+                <div className={styles.inputWrapper}>
+                  <span className={styles.inputIcon} aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                  </span>
+                  <select
+                    id="personasACargo"
+                    className={styles.input}
+                    value={personasACargo}
+                    onChange={(e) => setPersonasACargo(Number(e.target.value))}
+                  >
+                    {[0, 1, 2, 3, 4, 5].map(n => (
+                      <option key={n} value={n}>{n === 0 ? 'Ninguna' : `${n} persona${n > 1 ? 's' : ''}`}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
 
           {error && <p className={styles.error}>{error}</p>}
           {success && <p className={styles.success}>{success}</p>}

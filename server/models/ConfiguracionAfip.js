@@ -8,6 +8,7 @@ const ConfiguracionAfipSchema = new mongoose.Schema(
     incluyeJubilacion: { type: Boolean },
     limiteFacturacion: { type: Number },
     moneda: { type: String, default: "ARS" },
+    costoPorCarga: { type: Number, default: 0 },
     vigenciaDesde: { type: Date, required: true },
     vigenciaHasta: { type: Date, default: null },
   },

@@ -5,11 +5,6 @@ const { OAuth2Client } = require("google-auth-library");
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-<<<<<<< HEAD
-const createMonotributoDueDates = require("../utils/createMonotributoDueDates");
-
-=======
->>>>>>> e8835b37e79a97f57ed09c8d83340d8b87808e07
 // POST /api/auth/google — login o auto-registro con Google
 router.post("/google", async (req, res) => {
   try {
@@ -25,21 +20,6 @@ router.post("/google", async (req, res) => {
     let user = await User.findOne({ googleUid: payload.sub });
 
     if (!user) {
-<<<<<<< HEAD
-  user = new User({
-    googleUid: payload.sub,
-    email: payload.email,
-    emailNotificaciones: payload.email,
-    nombreCompleto: payload.name,
-    avatarUrl: payload.picture,
-    activo: true,
-  });
-
-  await user.save();
-
-  await createMonotributoDueDates(user._id);
-}
-=======
       user = new User({
         googleUid: payload.sub,
         email: payload.email,
@@ -51,7 +31,6 @@ router.post("/google", async (req, res) => {
 
       await user.save();
     }
->>>>>>> e8835b37e79a97f57ed09c8d83340d8b87808e07
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
 

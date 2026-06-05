@@ -62,6 +62,19 @@
   --color-dark-navy-light: #1e293b;
   --color-dark-navy-border: #1e293b;
 
+  /* Card surface — slightly raised above bg */
+  --color-card-bg: #363840;
+  --color-card-border: rgba(195, 198, 215, 0.12);
+
+  /* Theme-switchable surface/border tokens (dark defaults) */
+  --clr-border: rgba(195, 198, 215, 0.1);
+  --clr-border-faint: rgba(195, 198, 215, 0.06);
+  --clr-border-md: rgba(195, 198, 215, 0.15);
+  --clr-border-strong: rgba(195, 198, 215, 0.25);
+  --clr-hover-faint: rgba(255, 255, 255, 0.02);
+  --clr-hover: rgba(255, 255, 255, 0.06);
+  --clr-hover-strong: rgba(255, 255, 255, 0.09);
+
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   --radius-sm: 6px;
@@ -82,6 +95,31 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* ── Light mode overrides ────────────────────────────────── */
+:root[data-theme="light"] {
+  --color-dark-bg: #f1f5f9;
+  --color-dark-on-surface: #0f172a;
+  --color-dark-surface-variant: #e2e8f0;
+  --color-dark-outline-variant: #64748b;
+  --color-dark-brand: #2563eb;
+  --color-dark-navy: #ffffff;
+  --color-dark-navy-light: #f8fafc;
+  --color-dark-navy-border: #e2e8f0;
+  --color-primary-container: #2563eb;
+
+  --clr-border: rgba(15, 23, 42, 0.1);
+  --clr-border-faint: rgba(15, 23, 42, 0.06);
+  --clr-border-md: rgba(15, 23, 42, 0.14);
+  --clr-border-strong: rgba(15, 23, 42, 0.2);
+  --clr-hover-faint: rgba(0, 0, 0, 0.02);
+  --clr-hover: rgba(0, 0, 0, 0.05);
+  --clr-hover-strong: rgba(0, 0, 0, 0.08);
+
+  --color-card-bg: #ffffff;
+  --color-card-border: rgba(15, 23, 42, 0.1);
 }
 
 html,

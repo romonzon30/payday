@@ -12,7 +12,7 @@
   display: flex;
   flex-direction: column;
   padding: 24px 16px;
-  border-right: 1px solid rgba(195, 198, 215, 0.1);
+  border-right: 1px solid var(--clr-border);
   background-color: var(--color-dark-navy, #0f172a);
 }
 
@@ -46,7 +46,7 @@
 }
 
 .navItem:hover {
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: var(--clr-hover);
   color: var(--color-dark-on-surface);
 }
 
@@ -73,7 +73,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 32px;
-  border-bottom: 1px solid rgba(195, 198, 215, 0.1);
+  border-bottom: 1px solid var(--clr-border);
 }
 
 .pageTitle {
@@ -91,7 +91,26 @@
 .topbarRight {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+}
+
+.themeToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-dark-outline-variant);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.themeToggle:hover {
+  background-color: var(--clr-hover-strong);
+  color: var(--color-dark-on-surface);
 }
 
 .profileBtn {
@@ -154,7 +173,7 @@
 }
 
 .calendarNavBtn:hover {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--clr-hover-strong);
   color: var(--color-dark-on-surface);
 }
 
@@ -202,7 +221,7 @@
 .calendarGrid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  border: 1px solid rgba(195, 198, 215, 0.1);
+  border: 1px solid var(--clr-border);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -215,15 +234,15 @@
   letter-spacing: 0.04em;
   color: var(--color-dark-outline-variant);
   text-align: center;
-  background-color: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid rgba(195, 198, 215, 0.1);
+  background-color: var(--clr-hover-faint);
+  border-bottom: 1px solid var(--clr-border);
 }
 
 .dayCell {
   min-height: 90px;
   padding: 8px;
-  border-right: 1px solid rgba(195, 198, 215, 0.06);
-  border-bottom: 1px solid rgba(195, 198, 215, 0.06);
+  border-right: 1px solid var(--clr-border-faint);
+  border-bottom: 1px solid var(--clr-border-faint);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -231,7 +250,7 @@
 }
 
 .dayCell:hover {
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: var(--clr-hover-faint);
 }
 
 .dayCell:nth-child(7n) {
@@ -309,7 +328,7 @@
 
 /* ── Vencimientos Panel ──────────────────────────────────── */
 .vencPanel {
-  border-left: 1px solid rgba(195, 198, 215, 0.1);
+  border-left: 1px solid var(--clr-border);
   padding: 28px 24px;
   display: flex;
   flex-direction: column;
@@ -373,15 +392,15 @@
   padding: 18px 20px;
   border-radius: 12px;
   background-color: var(--color-dark-navy, #0f172a);
-  border: 1px solid rgba(195, 198, 215, 0.1);
+  border: 1px solid var(--clr-border);
   cursor: pointer;
   transition: border-color 0.15s ease, background-color 0.15s ease;
   user-select: none;
 }
 
 .vencCard:hover {
-  border-color: rgba(195, 198, 215, 0.2);
-  background-color: rgba(255, 255, 255, 0.02);
+  border-color: var(--clr-border-strong);
+  background-color: var(--clr-hover-faint);
 }
 
 .vencCardTop {
@@ -430,16 +449,23 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .vencCardMonto {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .vencCardBtnBlue,
 .vencCardBtnRed,
-.vencCardBtnGhost {
+.vencCardBtnGhost,
+.vencCardBtnDetails {
   padding: 6px 14px;
   border-radius: 8px;
   font-size: 12px;
@@ -447,12 +473,14 @@
   font-family: inherit;
   cursor: pointer;
   border: none;
+  flex-shrink: 0;
   transition: opacity 0.15s ease, background-color 0.15s ease;
 }
 
 .vencCardBtnBlue:hover,
 .vencCardBtnRed:hover,
-.vencCardBtnGhost:hover {
+.vencCardBtnGhost:hover,
+.vencCardBtnDetails:hover {
   opacity: 0.85;
 }
 
@@ -467,15 +495,120 @@
 }
 
 .vencCardBtnGhost {
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: var(--clr-hover);
   color: var(--color-dark-outline-variant);
-  border: 1px solid rgba(195, 198, 215, 0.18);
+  border: 1px solid var(--clr-border-md);
 }
 
 .vencCardBtnGhost:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--clr-hover-strong);
   color: var(--color-dark-on-surface);
   opacity: 1;
+}
+
+.vencCardBtnDetails {
+  background-color: var(--clr-hover);
+  color: var(--color-dark-outline-variant);
+  border: 1px solid var(--clr-border-md);
+}
+
+.vencCardBtnDetails:hover {
+  background-color: var(--clr-hover-strong);
+  color: var(--color-dark-on-surface);
+  opacity: 1;
+}
+
+/* ── Detail Modal ────────────────────────────────────────── */
+.detailOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+}
+
+.detailModal {
+  background: var(--color-dark-navy, #0f172a);
+  border: 1px solid var(--clr-border-md);
+  border-radius: 16px;
+  padding: 32px 28px 28px;
+  width: 380px;
+  max-width: 100%;
+  position: relative;
+}
+
+.detailCloseBtn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: var(--color-dark-outline-variant);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease;
+}
+
+.detailCloseBtn:hover {
+  background-color: var(--clr-hover-strong);
+}
+
+.detailType {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-dark-outline-variant);
+  margin-bottom: 6px;
+}
+
+.detailTitle {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.detailMonto {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 16px 0 6px;
+}
+
+.detailDate {
+  font-size: 13px;
+  color: var(--color-dark-outline-variant);
+  margin-bottom: 24px;
+}
+
+.detailActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detailDeleteBtn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(239, 68, 68, 0.08);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.15s ease;
+}
+
+.detailDeleteBtn:hover {
+  background: rgba(239, 68, 68, 0.15);
 }
 
 /* ── All Good ────────────────────────────────────────────── */
@@ -512,7 +645,7 @@
 
   .vencPanel {
     border-left: none;
-    border-top: 1px solid rgba(195, 198, 215, 0.1);
+    border-top: 1px solid var(--clr-border);
   }
 }
 
@@ -538,3 +671,70 @@
     display: none;
   }
 }
+
+/* ── Skeleton vencimientos ─────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+.skeletonVencCard {
+  background: var(--color-card-bg, rgba(255,255,255,0.04));
+  border: 1px solid var(--color-card-border, rgba(255,255,255,0.08));
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skeletonVencTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* shimmer mixin */
+.skeletonVencTitle,
+.skeletonVencBadge,
+.skeletonVencDate,
+.skeletonVencMonto,
+.skeletonVencBtn {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.10) 50%,
+    rgba(255,255,255,0.04) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+[data-theme="light"] .skeletonVencTitle,
+[data-theme="light"] .skeletonVencBadge,
+[data-theme="light"] .skeletonVencDate,
+[data-theme="light"] .skeletonVencMonto,
+[data-theme="light"] .skeletonVencBtn {
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,0.06) 25%,
+    rgba(0,0,0,0.13) 50%,
+    rgba(0,0,0,0.06) 75%
+  );
+  background-size: 800px 100%;
+}
+
+.skeletonVencTitle  { width: 65%;  height: 15px; }
+.skeletonVencBadge  { width: 60px; height: 18px; border-radius: 999px; flex-shrink: 0; }
+.skeletonVencDate   { width: 50%;  height: 12px; }
+
+.skeletonVencBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.skeletonVencMonto  { width: 80px;  height: 16px; }
+.skeletonVencBtn    { width: 78px;  height: 28px; border-radius: 8px; }

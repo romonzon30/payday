@@ -1,11 +1,13 @@
 import type { User } from '../types'
 import AppFooter from '../components/AppFooter'
+import AppSidebar from '../components/AppSidebar'
 import styles from './DashboardPage.module.css'
 
 interface DashboardPageProps {
   user: User
   onGoToProfile: () => void
   onGoToCalendar: () => void
+  onGoToImpuestos: () => void
   onLogout: () => void
 }
 
@@ -13,33 +15,18 @@ function upperCaseName(name: string) {
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
-export default function DashboardPage({ user, onGoToProfile, onGoToCalendar, onLogout }: DashboardPageProps) {
+export default function DashboardPage({ user, onGoToProfile, onGoToCalendar, onGoToImpuestos, onLogout }: DashboardPageProps) {
   return (
     <div className={styles.page}>
-      {/* Sidebar */}
-      <aside className={styles.sidebar}>
-        <span className={styles.brand}>PAYDAY</span>
-        <nav className={styles.nav}>
-          <button className={`${styles.navItem} ${styles.navItemActive}`}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-            Inicio
-          </button>
-          <button className={styles.navItem} onClick={onGoToCalendar}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-            Calendario
-          </button>
-          <button className={styles.navItem} onClick={onGoToProfile}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12 1v2m0 18v2m-9-11h2m18 0h2m-3.636-6.364-1.414 1.414M6.05 17.95l-1.414 1.414m0-12.728 1.414 1.414m11.314 11.314 1.414 1.414" /></svg>
-            Configuración
-          </button>
-        </nav>
-        <div className={styles.sidebarBottom}>
-          <button className={styles.navItem} onClick={onLogout}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-            Salir
-          </button>
-        </div>
-      </aside>
+      <AppSidebar
+        user={user}
+        activeView="dashboard"
+        onGoToDashboard={() => {}}
+        onGoToCalendar={onGoToCalendar}
+        onGoToImpuestos={onGoToImpuestos}
+        onGoToProfile={onGoToProfile}
+        onLogout={onLogout}
+      />
 
       {/* Main Content */}
       <div className={styles.mainWrapper}>
@@ -52,17 +39,6 @@ export default function DashboardPage({ user, onGoToProfile, onGoToCalendar, onL
             <p className={styles.pageSubtitle}>
               Bienvenido a tu panel de control
             </p>
-          </div>
-          <div className={styles.topbarRight}>
-            <button className={styles.profileBtn} onClick={onGoToProfile}>
-              {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt="" className={styles.avatar} referrerPolicy="no-referrer" />
-              ) : (
-                <span className={styles.avatarFallback}>
-                  {user.nombreCompleto.charAt(0).toUpperCase()}
-                </span>
-              )}
-            </button>
           </div>
         </header>
 

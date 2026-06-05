@@ -16,6 +16,12 @@ const UserSchema = new mongoose.Schema(
     fechaInscripcion: { type: Date },
     perfilCompleto: { type: Boolean, default: false },
     activo: { type: Boolean, default: true },
+    inicioActividad: {
+      type: String,
+      enum: ["normal", "primer_anio", "segundo_anio"],
+      default: "normal",
+    },
+    personasACargo: { type: Number, default: 0, min: 0, max: 5 },
   },
   {
     timestamps: { createdAt: "creadoEn", updatedAt: "actualizadoEn" },
@@ -23,7 +29,3 @@ const UserSchema = new mongoose.Schema(
 );
 
 module.exports = mongoose.model("User", UserSchema);
-<<<<<<< HEAD
-
-=======
->>>>>>> e8835b37e79a97f57ed09c8d83340d8b87808e07
