@@ -1,0 +1,135 @@
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 12px;
+  border-right: 1px solid var(--clr-border);
+  background-color: var(--color-dark-navy, #0f172a);
+  min-height: 100vh;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.brand {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--color-dark-brand);
+  margin-bottom: 28px;
+  padding: 0 10px;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-dark-outline-variant);
+  transition: background-color 0.15s ease, color 0.15s ease;
+  text-align: left;
+  border: none;
+  background: none;
+  cursor: pointer;
+  width: 100%;
+  font-family: inherit;
+}
+
+.navItem:hover {
+  background-color: var(--clr-hover);
+  color: var(--color-dark-on-surface);
+}
+
+.navItemActive {
+  background-color: rgba(180, 197, 255, 0.12);
+  color: var(--color-dark-brand);
+  cursor: default;
+}
+
+[data-theme="light"] .navItemActive {
+  background-color: rgba(37, 99, 235, 0.1);
+}
+
+.sidebarBottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 16px;
+  border-top: 1px solid var(--clr-border);
+}
+
+/* User row */
+.userRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+}
+
+.userAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.userAvatarFallback {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-dark-brand);
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+[data-theme="light"] .userAvatarFallback {
+  color: #ffffff;
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-dark-outline-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Logout item gets a subtle red tint on hover */
+.logoutItem:hover {
+  background-color: rgba(252, 165, 165, 0.08);
+  color: #fca5a5;
+}
+
+[data-theme="light"] .logoutItem:hover {
+  background-color: rgba(220, 38, 38, 0.06);
+  color: #dc2626;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+}

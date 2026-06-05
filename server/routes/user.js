@@ -3,92 +3,77 @@ const authMiddleware = require("../middleware/auth");
 const ConfiguracionAfip = require("../models/ConfiguracionAfip");
 const Vencimiento = require("../models/Vencimiento");
 
-// Ajusta una fecha al primer día hábil igual o posterior
-function adjustToNextBusinessDay(date) {
-  const d = new Date(date);
-  // 0 = Sunday, 6 = Saturday
-  while (d.getDay() === 0 || d.getDay() === 6) {
-    d.setDate(d.getDate() + 1);
+// Returns a UTC noon Date for the first business day on or after the given day
+function adjustToNextBusinessDayUTC(year, month, day) {
+  const d = new Date(Date.UTC(year, month, day, 12, 0, 0));
+  while (d.getUTCDay() === 0 || d.getUTCDay() === 6) {
+    d.setUTCDate(d.getUTCDate() + 1);
   }
   return d;
 }
 
-// Genera y persiste vencimientos para un año dado
-async function generarVencimientosAnio(userId, cuit, categoria, year) {
-  const config = await ConfiguracionAfip.findOne({ categoria });
-  const monto = config ? config.montoMensual : 0;
-  // Fijamos el día 20 y, si cae fin de semana, lo movemos al primer día hábil siguiente
-  const fixedDay = 20;
-
-  const docs = [];
-  for (let month = 0; month < 12; month++) {
-    const rawDate = new Date(year, month, fixedDay, 12, 0, 0);
-    const fechaAjustada = adjustToNextBusinessDay(rawDate);
-    docs.push({
-      userId,
-      tipo: "monotributo",
-      descripcion: "AFIP - Monotributo",
-      monto,
-      fechaVencimiento: fechaAjustada,
-      estado: "pendiente",
-    });
+// Calculates the final monthly amount applying user modifiers
+function calcMontoFinal(config, user) {
+  if (!config) return 0;
+  let monto = config.montoMensual;
+  if (user.inicioActividad === "primer_anio") monto *= 0.5;
+  else if (user.inicioActividad === "segundo_anio") monto *= 0.75;
+  if (config.incluyeObraSocial && (user.personasACargo || 0) > 0) {
+    monto += (config.costoPorCarga || 0) * (user.personasACargo || 0);
   }
-
-  await Vencimiento.insertMany(docs);
+  return Math.round(monto * 100) / 100;
 }
 
-async function buildExpectedMonotributoVencimientos(categoria, year) {
-  const docs = [];
-  const config = await ConfiguracionAfip.findOne({ categoria });
-  const monto = config ? config.montoMensual : 0;
-
-  for (let month = 0; month < 12; month++) {
-    const rawDate = new Date(year, month, 20, 12, 0, 0);
-    const fechaAjustada = adjustToNextBusinessDay(rawDate);
-    docs.push({
-      categoria,
-      monto,
-      fechaVencimiento: fechaAjustada,
-      mes: month + 1,
-    });
-  }
-
-  return docs;
-}
-
-// Asegura que existan los vencimientos monotributo del año solicitado
-async function ensureVencimientosAnio(user, year) {
+// Per-month reconciliation: ensures each month has the correct pending doc; paid months are untouched
+async function upsertMonotributoVencimientos(user, year) {
   if (!user.perfilCompleto || !user.cuit || !user.categoriaMonotributo) return;
 
   const config = await ConfiguracionAfip.findOne({ categoria: user.categoriaMonotributo });
-  const expectedMonto = config ? config.montoMensual : 0;
+  const expectedMonto = calcMontoFinal(config, user);
 
-  const yearStart = new Date(year, 0, 1);
-  const yearEnd = new Date(year + 1, 0, 1);
-  const existing = await Vencimiento.find({
-    userId: user._id,
-    tipo: "monotributo",
-    fechaVencimiento: { $gte: yearStart, $lt: yearEnd },
-  }).lean();
-
-  const expectedDates = [];
   for (let month = 0; month < 12; month++) {
-    expectedDates.push(adjustToNextBusinessDay(new Date(year, month, 20, 12, 0, 0)).toISOString());
-  }
+    const monthStart = new Date(Date.UTC(year, month, 1));
+    const monthEnd = new Date(Date.UTC(year, month + 1, 1));
 
-  const validCount = existing.filter((doc) => {
-    const docDate = new Date(doc.fechaVencimiento).toISOString();
-    return expectedDates.includes(docDate) && Number(doc.monto) === Number(expectedMonto);
-  }).length;
-
-  if (validCount !== 12) {
-    await Vencimiento.deleteMany({
+    const hasPaid = await Vencimiento.exists({
       userId: user._id,
       tipo: "monotributo",
-      fechaVencimiento: { $gte: yearStart, $lt: yearEnd },
+      fechaVencimiento: { $gte: monthStart, $lt: monthEnd },
+      estado: { $in: ["pagado", "al_dia"] },
+    });
+    if (hasPaid) continue;
+
+    const expectedDate = adjustToNextBusinessDayUTC(year, month, 20);
+    const expectedISO = expectedDate.toISOString();
+
+    const existing = await Vencimiento.findOne({
+      userId: user._id,
+      tipo: "monotributo",
+      fechaVencimiento: { $gte: monthStart, $lt: monthEnd },
       estado: "pendiente",
     });
-    await generarVencimientosAnio(user._id, user.cuit, user.categoriaMonotributo, year);
+
+    const alreadyCorrect =
+      existing &&
+      new Date(existing.fechaVencimiento).toISOString() === expectedISO &&
+      Math.round(Number(existing.monto) * 100) === Math.round(expectedMonto * 100);
+
+    if (!alreadyCorrect) {
+      await Vencimiento.deleteMany({
+        userId: user._id,
+        tipo: "monotributo",
+        fechaVencimiento: { $gte: monthStart, $lt: monthEnd },
+        estado: "pendiente",
+      });
+      await Vencimiento.create({
+        userId: user._id,
+        tipo: "monotributo",
+        descripcion: "AFIP - Monotributo",
+        monto: expectedMonto,
+        fechaVencimiento: expectedDate,
+        estado: "pendiente",
+      });
+    }
   }
 }
 
@@ -99,27 +84,19 @@ router.get("/debug", authMiddleware, async (req, res) => {
     if (!user.perfilCompleto || !user.cuit || !user.categoriaMonotributo) {
       return res.status(400).json({ message: "Perfil incompleto: cuit/categoria requeridos" });
     }
-
+    const year = new Date().getUTCFullYear();
     const config = await ConfiguracionAfip.findOne({ categoria: user.categoriaMonotributo });
-    const expected = await buildExpectedMonotributoVencimientos(user.categoriaMonotributo, new Date().getFullYear());
+    const monto = calcMontoFinal(config, user);
+    const expected = [];
+    for (let month = 0; month < 12; month++) {
+      expected.push({ mes: month + 1, fechaVencimiento: adjustToNextBusinessDayUTC(year, month, 20), monto });
+    }
     const actual = await Vencimiento.find({
       userId: user._id,
       tipo: "monotributo",
-      fechaVencimiento: {
-        $gte: new Date(new Date().getFullYear(), 0, 1),
-        $lt: new Date(new Date().getFullYear() + 1, 0, 1),
-      },
+      fechaVencimiento: { $gte: new Date(Date.UTC(year, 0, 1)), $lt: new Date(Date.UTC(year + 1, 0, 1)) },
     }).lean();
-
-    return res.json({
-      user: {
-        categoriaMonotributo: user.categoriaMonotributo,
-        cuit: user.cuit,
-      },
-      config,
-      expected,
-      actual,
-    });
+    return res.json({ user: { categoriaMonotributo: user.categoriaMonotributo, cuit: user.cuit }, config, expected, actual });
   } catch (err) {
     console.error("Error en /debug:", err.message);
     res.status(500).json({ message: "Error de debug" });
@@ -130,66 +107,57 @@ router.get("/debug", authMiddleware, async (req, res) => {
 // Si tiene CUIL + categoría, asegura vencimientos del año actual.
 router.get("/me", authMiddleware, async (req, res) => {
   try {
-    await ensureVencimientosAnio(req.user, new Date().getFullYear());
+    await upsertMonotributoVencimientos(req.user, new Date().getUTCFullYear());
   } catch (err) {
     console.error("Error asegurando vencimientos en /me:", err.message);
   }
   res.json({ user: req.user });
 });
 
-// PUT /api/user/profile — actualizar perfil (nombre, cuit, emailNotificaciones, categoriaMonotributo)
+// PUT /api/user/profile — actualizar perfil
 router.put("/profile", authMiddleware, async (req, res) => {
   try {
-    const { nombreCompleto, cuit, emailNotificaciones, categoriaMonotributo } = req.body;
+    const { nombreCompleto, cuit, emailNotificaciones, categoriaMonotributo, inicioActividad, personasACargo } = req.body;
     const user = req.user;
 
     if (nombreCompleto) user.nombreCompleto = nombreCompleto.trim();
     if (emailNotificaciones) user.emailNotificaciones = emailNotificaciones.trim();
-
-    const oldCuit = user.cuit;
-    const oldCategoria = user.categoriaMonotributo;
-    let changedMonotributoConfig = false;
-
-    if (cuit && cuit.trim() && cuit.trim() !== user.cuit) {
-      user.cuit = cuit.trim();
-      changedMonotributoConfig = true;
-    }
+    if (cuit && cuit.trim()) user.cuit = cuit.trim();
 
     if (categoriaMonotributo) {
       const categoria = String(categoriaMonotributo).trim().toUpperCase();
-      if (categoria !== user.categoriaMonotributo) {
-        const config = await ConfiguracionAfip.findOne({ categoria });
-        if (!config) {
-          return res.status(400).json({ message: "Categoría de monotributo inválida" });
-        }
+      const config = await ConfiguracionAfip.findOne({ categoria });
+      if (!config) return res.status(400).json({ message: "Categoría de monotributo inválida" });
+      user.categoriaMonotributo = config.categoria;
+      user.fechaInscripcion = user.fechaInscripcion || new Date();
+    }
 
-        user.categoriaMonotributo = config.categoria;
-        user.fechaInscripcion = user.fechaInscripcion || new Date();
-        changedMonotributoConfig = true;
+    if (inicioActividad !== undefined) {
+      if (!["normal", "primer_anio", "segundo_anio"].includes(inicioActividad)) {
+        return res.status(400).json({ message: "Valor de inicio de actividad inválido" });
       }
+      user.inicioActividad = inicioActividad;
+    }
+
+    if (personasACargo !== undefined) {
+      const n = parseInt(personasACargo, 10);
+      if (isNaN(n) || n < 0 || n > 5) {
+        return res.status(400).json({ message: "Personas a cargo debe ser entre 0 y 5" });
+      }
+      user.personasACargo = n;
     }
 
     user.perfilCompleto = !!user.cuit && !!user.categoriaMonotributo;
     await user.save();
 
-    if (changedMonotributoConfig && user.perfilCompleto) {
-      if ((oldCuit && oldCuit !== user.cuit) || (oldCategoria && oldCategoria !== user.categoriaMonotributo)) {
-        await Vencimiento.deleteMany({
-          userId: user._id,
-          tipo: "monotributo",
-          estado: "pendiente",
-        });
-      }
-
-      const currentYear = new Date().getFullYear();
-      await ensureVencimientosAnio(user, currentYear);
+    if (user.perfilCompleto) {
+      await upsertMonotributoVencimientos(user, new Date().getUTCFullYear());
     }
 
     res.json({ user });
   } catch (err) {
-    if (err.code === 11000) {
-      return res.status(409).json({ message: "El CUIL ya está registrado por otro usuario" });
-    }
+    if (err.code === 11000) return res.status(409).json({ message: "El CUIL ya está registrado por otro usuario" });
+    console.error("Error en PUT /profile:", err.message);
     res.status(500).json({ message: "Error al actualizar perfil" });
   }
 });
@@ -198,13 +166,13 @@ router.put("/profile", authMiddleware, async (req, res) => {
 router.get("/vencimientos", authMiddleware, async (req, res) => {
   try {
     const user = req.user;
-    const year = parseInt(req.query.year) || new Date().getFullYear();
-    const month = parseInt(req.query.month) || new Date().getMonth() + 1;
+    const year = parseInt(req.query.year) || new Date().getUTCFullYear();
+    const month = parseInt(req.query.month) || new Date().getUTCMonth() + 1;
 
-    await ensureVencimientosAnio(user, year);
+    await upsertMonotributoVencimientos(user, year);
 
-    const monthStart = new Date(year, month - 1, 1);
-    const monthEnd = new Date(year, month, 1);
+    const monthStart = new Date(Date.UTC(year, month - 1, 1));
+    const monthEnd = new Date(Date.UTC(year, month, 1));
     const vencimientos = await Vencimiento.find({
       userId: user._id,
       fechaVencimiento: { $gte: monthStart, $lt: monthEnd },
@@ -213,26 +181,27 @@ router.get("/vencimientos", authMiddleware, async (req, res) => {
       .lean();
 
     const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
+    const currentMonth = now.getUTCMonth() + 1;
+    const currentYear = now.getUTCFullYear();
 
     const result = vencimientos.map((v) => {
       let estado = v.estado;
+      const vencDate = new Date(v.fechaVencimiento);
+      const vencDay = vencDate.getUTCDate();
 
       if (v.tipo === "custom") {
         if (estado === "pagado" || estado === "al_dia") {
           estado = "al_dia";
         } else {
-          estado = new Date(v.fechaVencimiento) < now ? "vencido" : "pendiente";
+          estado = vencDate < now ? "vencido" : "pendiente";
         }
       } else if (estado === "pagado" || estado === "al_dia") {
         estado = "al_dia";
       } else if (year < currentYear || (year === currentYear && month < currentMonth)) {
         estado = "al_dia";
       } else if (year === currentYear && month === currentMonth) {
-        const vencDay = new Date(v.fechaVencimiento).getDate();
-        if (now.getDate() > vencDay + 2) estado = "al_dia";
-        else if (now.getDate() > vencDay) estado = "vencido";
+        if (now.getUTCDate() > vencDay + 2) estado = "al_dia";
+        else if (now.getUTCDate() > vencDay) estado = "vencido";
         else estado = "pendiente";
       } else {
         estado = "pendiente";
@@ -247,7 +216,6 @@ router.get("/vencimientos", authMiddleware, async (req, res) => {
         fechaVencimiento: v.fechaVencimiento,
         estado,
         notificarEmail: !!v.notificarEmail,
-        notificarSms: !!v.notificarSms,
       };
     });
 
@@ -261,7 +229,7 @@ router.get("/vencimientos", authMiddleware, async (req, res) => {
 // POST /api/user/vencimientos — crear un vencimiento custom
 router.post("/vencimientos", authMiddleware, async (req, res) => {
   try {
-    const { titulo, descripcion, monto, fechaVencimiento, notificarEmail, notificarSms, recurrente } = req.body;
+    const { titulo, descripcion, monto, fechaVencimiento, notificarEmail, recurrente } = req.body;
 
     if (!titulo || !titulo.trim()) {
       return res.status(400).json({ message: "Título requerido" });
@@ -283,7 +251,6 @@ router.post("/vencimientos", authMiddleware, async (req, res) => {
       monto: Number(monto) || 0,
       estado: "pendiente",
       notificarEmail: !!notificarEmail,
-      notificarSms: !!notificarSms,
       recurrente: !!recurrente,
     };
 
