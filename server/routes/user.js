@@ -3,31 +3,33 @@ const authMiddleware = require("../middleware/auth");
 const ConfiguracionAfip = require("../models/ConfiguracionAfip");
 const Vencimiento = require("../models/Vencimiento");
 
-// Calcula el día de vencimiento según el penúltimo dígito del CUIL
-function calcVencDay(cuit) {
-  const cuitClean = cuit.replace(/-/g, "");
-  const digit = parseInt(cuitClean.slice(-2, -1), 10);
-  if (digit <= 1) return 13;
-  if (digit <= 3) return 15;
-  if (digit <= 5) return 17;
-  if (digit <= 7) return 19;
-  return 21;
+// Ajusta una fecha al primer día hábil igual o posterior
+function adjustToNextBusinessDay(date) {
+  const d = new Date(date);
+  // 0 = Sunday, 6 = Saturday
+  while (d.getDay() === 0 || d.getDay() === 6) {
+    d.setDate(d.getDate() + 1);
+  }
+  return d;
 }
 
 // Genera y persiste vencimientos para un año dado
 async function generarVencimientosAnio(userId, cuit, categoria, year) {
   const config = await ConfiguracionAfip.findOne({ categoria });
   const monto = config ? config.montoMensual : 0;
-  const vencDay = calcVencDay(cuit);
+  // Fijamos el día 20 y, si cae fin de semana, lo movemos al primer día hábil siguiente
+  const fixedDay = 20;
 
   const docs = [];
   for (let month = 0; month < 12; month++) {
+    const rawDate = new Date(year, month, fixedDay, 12, 0, 0);
+    const fechaAjustada = adjustToNextBusinessDay(rawDate);
     docs.push({
       userId,
       tipo: "monotributo",
       descripcion: "AFIP - Monotributo",
       monto,
-      fechaVencimiento: new Date(year, month, vencDay),
+      fechaVencimiento: fechaAjustada,
       estado: "pendiente",
     });
   }
@@ -35,22 +37,94 @@ async function generarVencimientosAnio(userId, cuit, categoria, year) {
   await Vencimiento.insertMany(docs);
 }
 
+async function buildExpectedMonotributoVencimientos(categoria, year) {
+  const docs = [];
+  const config = await ConfiguracionAfip.findOne({ categoria });
+  const monto = config ? config.montoMensual : 0;
+
+  for (let month = 0; month < 12; month++) {
+    const rawDate = new Date(year, month, 20, 12, 0, 0);
+    const fechaAjustada = adjustToNextBusinessDay(rawDate);
+    docs.push({
+      categoria,
+      monto,
+      fechaVencimiento: fechaAjustada,
+      mes: month + 1,
+    });
+  }
+
+  return docs;
+}
+
 // Asegura que existan los vencimientos monotributo del año solicitado
 async function ensureVencimientosAnio(user, year) {
   if (!user.perfilCompleto || !user.cuit || !user.categoriaMonotributo) return;
 
+  const config = await ConfiguracionAfip.findOne({ categoria: user.categoriaMonotributo });
+  const expectedMonto = config ? config.montoMensual : 0;
+
   const yearStart = new Date(year, 0, 1);
   const yearEnd = new Date(year + 1, 0, 1);
-  const count = await Vencimiento.countDocuments({
+  const existing = await Vencimiento.find({
     userId: user._id,
     tipo: "monotributo",
     fechaVencimiento: { $gte: yearStart, $lt: yearEnd },
-  });
+  }).lean();
 
-  if (count === 0) {
+  const expectedDates = [];
+  for (let month = 0; month < 12; month++) {
+    expectedDates.push(adjustToNextBusinessDay(new Date(year, month, 20, 12, 0, 0)).toISOString());
+  }
+
+  const validCount = existing.filter((doc) => {
+    const docDate = new Date(doc.fechaVencimiento).toISOString();
+    return expectedDates.includes(docDate) && Number(doc.monto) === Number(expectedMonto);
+  }).length;
+
+  if (validCount !== 12) {
+    await Vencimiento.deleteMany({
+      userId: user._id,
+      tipo: "monotributo",
+      fechaVencimiento: { $gte: yearStart, $lt: yearEnd },
+      estado: "pendiente",
+    });
     await generarVencimientosAnio(user._id, user.cuit, user.categoriaMonotributo, year);
   }
 }
+
+// GET /api/user/debug — devuelve datos de debug para monotributo.
+router.get("/debug", authMiddleware, async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user.perfilCompleto || !user.cuit || !user.categoriaMonotributo) {
+      return res.status(400).json({ message: "Perfil incompleto: cuit/categoria requeridos" });
+    }
+
+    const config = await ConfiguracionAfip.findOne({ categoria: user.categoriaMonotributo });
+    const expected = await buildExpectedMonotributoVencimientos(user.categoriaMonotributo, new Date().getFullYear());
+    const actual = await Vencimiento.find({
+      userId: user._id,
+      tipo: "monotributo",
+      fechaVencimiento: {
+        $gte: new Date(new Date().getFullYear(), 0, 1),
+        $lt: new Date(new Date().getFullYear() + 1, 0, 1),
+      },
+    }).lean();
+
+    return res.json({
+      user: {
+        categoriaMonotributo: user.categoriaMonotributo,
+        cuit: user.cuit,
+      },
+      config,
+      expected,
+      actual,
+    });
+  } catch (err) {
+    console.error("Error en /debug:", err.message);
+    res.status(500).json({ message: "Error de debug" });
+  }
+});
 
 // GET /api/user/me — devuelve el usuario autenticado.
 // Si tiene CUIL + categoría, asegura vencimientos del año actual.
@@ -63,30 +137,43 @@ router.get("/me", authMiddleware, async (req, res) => {
   res.json({ user: req.user });
 });
 
-// PUT /api/user/profile — actualizar perfil (nombre, cuit, emailNotificaciones)
+// PUT /api/user/profile — actualizar perfil (nombre, cuit, emailNotificaciones, categoriaMonotributo)
 router.put("/profile", authMiddleware, async (req, res) => {
   try {
-    const { nombreCompleto, cuit, emailNotificaciones } = req.body;
+    const { nombreCompleto, cuit, emailNotificaciones, categoriaMonotributo } = req.body;
     const user = req.user;
 
     if (nombreCompleto) user.nombreCompleto = nombreCompleto.trim();
     if (emailNotificaciones) user.emailNotificaciones = emailNotificaciones.trim();
 
+    const oldCuit = user.cuit;
+    const oldCategoria = user.categoriaMonotributo;
+    let changedMonotributoConfig = false;
+
     if (cuit && cuit.trim() && cuit.trim() !== user.cuit) {
-      const oldCuit = user.cuit;
       user.cuit = cuit.trim();
+      changedMonotributoConfig = true;
+    }
 
-      // TODO: Integrar con API real de AFIP
-      const categoria = await ConfiguracionAfip.findOne({ categoria: "A" });
-      if (categoria) {
-        user.categoriaMonotributo = categoria.categoria;
+    if (categoriaMonotributo) {
+      const categoria = String(categoriaMonotributo).trim().toUpperCase();
+      if (categoria !== user.categoriaMonotributo) {
+        const config = await ConfiguracionAfip.findOne({ categoria });
+        if (!config) {
+          return res.status(400).json({ message: "Categoría de monotributo inválida" });
+        }
+
+        user.categoriaMonotributo = config.categoria;
         user.fechaInscripcion = user.fechaInscripcion || new Date();
+        changedMonotributoConfig = true;
       }
+    }
 
-      user.perfilCompleto = true;
-      await user.save();
+    user.perfilCompleto = !!user.cuit && !!user.categoriaMonotributo;
+    await user.save();
 
-      if (oldCuit && oldCuit !== user.cuit) {
+    if (changedMonotributoConfig && user.perfilCompleto) {
+      if ((oldCuit && oldCuit !== user.cuit) || (oldCategoria && oldCategoria !== user.categoriaMonotributo)) {
         await Vencimiento.deleteMany({
           userId: user._id,
           tipo: "monotributo",
@@ -106,11 +193,8 @@ router.put("/profile", authMiddleware, async (req, res) => {
       if (existing === 0) {
         await generarVencimientosAnio(user._id, user.cuit, user.categoriaMonotributo, currentYear);
       }
-
-      return res.json({ user });
     }
 
-    await user.save();
     res.json({ user });
   } catch (err) {
     if (err.code === 11000) {

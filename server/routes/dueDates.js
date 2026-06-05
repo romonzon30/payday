@@ -31,35 +31,4 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
-
-const createMonotributoDueDates = require("../utils/createMonotributoDueDates");
-
-router.post("/generate-monotributo", auth, async (req, res) => {
-  try {
-    const existing = await DueDate.findOne({
-      userId: req.user.id,
-      category: "Monotributo",
-    });
-
-    if (existing) {
-      return res.json({
-        message: "Los vencimientos de monotributo ya existen",
-      });
-    }
-
-    await createMonotributoDueDates(req.user.id);
-
-    res.json({
-      message: "Vencimientos de monotributo generados",
-    });
-  } catch (err) {
-    res.status(500).json({
-      message: "Error generando vencimientos",
-    });
-  }
-});
-
-=======
->>>>>>> e8835b37e79a97f57ed09c8d83340d8b87808e07
 module.exports = router;

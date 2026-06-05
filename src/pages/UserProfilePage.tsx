@@ -15,6 +15,7 @@ interface UserProfilePageProps {
 export default function UserProfilePage({ user, onBack, onUserUpdated, onProfileCompleted, onLogout }: UserProfilePageProps) {
   const [nombreCompleto, setNombreCompleto] = useState(user.nombreCompleto)
   const [cuit, setCuit] = useState(user.cuit || '')
+  const [categoriaMonotributo, setCategoriaMonotributo] = useState(user.categoriaMonotributo || '')
   const [emailNotificaciones, setEmailNotificaciones] = useState(user.emailNotificaciones)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -42,6 +43,7 @@ export default function UserProfilePage({ user, onBack, onUserUpdated, onProfile
         body: JSON.stringify({
           nombreCompleto: nombreCompleto.trim(),
           cuit: cuit.trim() || undefined,
+          categoriaMonotributo: categoriaMonotributo.trim() || undefined,
           emailNotificaciones: emailNotificaciones.trim(),
         }),
       })
@@ -49,25 +51,6 @@ export default function UserProfilePage({ user, onBack, onUserUpdated, onProfile
       const data = await res.json()
 
       if (res.ok) {
-  const isNewCuil = cuit.trim() && !user.cuit
-
-  if (isNewCuil) {
-    await fetch(`${API_URL}/api/due-dates/generate-monotributo`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-  }
-
-  onUserUpdated(data.user)
-
-  if (isNewCuil) {
-    onProfileCompleted(data.user)
-  } else {
-    setSuccess('Perfil actualizado correctamente.')
-  }
-}
         const isNewCuil = cuit.trim() && !user.cuit
         onUserUpdated(data.user)
         if (isNewCuil) {
@@ -163,6 +146,29 @@ export default function UserProfilePage({ user, onBack, onUserUpdated, onProfile
                 value={cuit}
                 onChange={(e) => setCuit(e.target.value)}
               />
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="categoriaMonotributo">Categoría Monotributo</label>
+            <div className={styles.inputWrapper}>
+              <span className={styles.inputIcon} aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14" />
+                  <path d="M5 12h14" />
+                </svg>
+              </span>
+              <select
+                id="categoriaMonotributo"
+                className={styles.input}
+                value={categoriaMonotributo}
+                onChange={(e) => setCategoriaMonotributo(e.target.value)}
+              >
+                <option value="">Selecciona una categoría</option>
+                {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'].map((categoria) => (
+                  <option key={categoria} value={categoria}>{categoria}</option>
+                ))}
+              </select>
             </div>
           </div>
 
