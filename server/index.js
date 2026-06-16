@@ -5,6 +5,7 @@ const { env, isEmailConfigured, validateEnv } = require("./config/env");
 const { connectDB, seedAfipCategorias } = require("./config/db");
 const { createApp } = require("./app");
 const { startNotificationScheduler } = require("./services/notificationScheduler");
+const { verifyTransporter } = require("./services/emailService");
 
 async function start() {
   validateEnv();
@@ -17,6 +18,7 @@ async function start() {
   app.listen(env.port, () => {
     console.log(`Servidor corriendo en puerto ${env.port}`);
     if (isEmailConfigured()) {
+      verifyTransporter();
       startNotificationScheduler();
     } else {
       console.log("[NOTIF] SMTP no configurado, scheduler deshabilitado");
