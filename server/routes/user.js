@@ -2,27 +2,9 @@ const router = require("express").Router();
 const authMiddleware = require("../middleware/auth");
 const ConfiguracionAfip = require("../models/ConfiguracionAfip");
 const Vencimiento = require("../models/Vencimiento");
-
-// Returns a UTC noon Date for the first business day on or after the given day
-function adjustToNextBusinessDayUTC(year, month, day) {
-  const d = new Date(Date.UTC(year, month, day, 12, 0, 0));
-  while (d.getUTCDay() === 0 || d.getUTCDay() === 6) {
-    d.setUTCDate(d.getUTCDate() + 1);
-  }
-  return d;
-}
-
-// Calculates the final monthly amount applying user modifiers
-function calcMontoFinal(config, user) {
-  if (!config) return 0;
-  let monto = config.montoMensual;
-  if (user.inicioActividad === "primer_anio") monto *= 0.5;
-  else if (user.inicioActividad === "segundo_anio") monto *= 0.75;
-  if (config.incluyeObraSocial && (user.personasACargo || 0) > 0) {
-    monto += (config.costoPorCarga || 0) * (user.personasACargo || 0);
-  }
-  return Math.round(monto * 100) / 100;
-}
+const { adjustToNextBusinessDayUTC } = require("../domain/businessDays");
+const { calcMontoFinal } = require("../domain/monotributo");
+const { computeEstado } = require("../domain/vencimientoEstado");
 
 // Per-month reconciliation: ensures each month has the correct pending doc; paid months are untouched
 async function upsertMonotributoVencimientos(user, year) {
@@ -56,7 +38,8 @@ async function upsertMonotributoVencimientos(user, year) {
     const alreadyCorrect =
       existing &&
       new Date(existing.fechaVencimiento).toISOString() === expectedISO &&
-      Math.round(Number(existing.monto) * 100) === Math.round(expectedMonto * 100);
+      Math.round(Number(existing.monto) * 100) === Math.round(expectedMonto * 100) &&
+      existing.notificarEmail === true;
 
     if (!alreadyCorrect) {
       await Vencimiento.deleteMany({
@@ -72,6 +55,7 @@ async function upsertMonotributoVencimientos(user, year) {
         monto: expectedMonto,
         fechaVencimiento: expectedDate,
         estado: "pendiente",
+        notificarEmail: true,
       });
     }
   }
@@ -181,31 +165,9 @@ router.get("/vencimientos", authMiddleware, async (req, res) => {
       .lean();
 
     const now = new Date();
-    const currentMonth = now.getUTCMonth() + 1;
-    const currentYear = now.getUTCFullYear();
 
     const result = vencimientos.map((v) => {
-      let estado = v.estado;
-      const vencDate = new Date(v.fechaVencimiento);
-      const vencDay = vencDate.getUTCDate();
-
-      if (v.tipo === "custom") {
-        if (estado === "pagado" || estado === "al_dia") {
-          estado = "al_dia";
-        } else {
-          estado = vencDate < now ? "vencido" : "pendiente";
-        }
-      } else if (estado === "pagado" || estado === "al_dia") {
-        estado = "al_dia";
-      } else if (year < currentYear || (year === currentYear && month < currentMonth)) {
-        estado = "al_dia";
-      } else if (year === currentYear && month === currentMonth) {
-        if (now.getUTCDate() > vencDay + 2) estado = "al_dia";
-        else if (now.getUTCDate() > vencDay) estado = "vencido";
-        else estado = "pendiente";
-      } else {
-        estado = "pendiente";
-      }
+      const estado = computeEstado(v, year, month, now);
 
       return {
         _id: v._id,
