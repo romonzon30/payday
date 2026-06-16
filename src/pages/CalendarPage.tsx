@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
-import type { User } from '../types'
+import { useState } from 'react'
+import type { User, Vencimiento } from '../types'
 import AppFooter from '../components/AppFooter'
 import AppSidebar from '../components/AppSidebar'
 import NuevoVencimientoModal from '../components/NuevoVencimientoModal'
+import { useVencimientos } from '../hooks/useVencimientos'
+import { MONTH_NAMES, DAYS_HEADER, getCalendarDays, formatMonto, getUTCDay, getUTCMonthIndex, statusLabel } from '../utils/fecha'
 import styles from './CalendarPage.module.css'
-
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '')
 
 interface CalendarPageProps {
   user: User
@@ -13,72 +13,6 @@ interface CalendarPageProps {
   onGoToProfile: () => void
   onGoToImpuestos: () => void
   onLogout: () => void
-}
-
-interface Vencimiento {
-  _id: string
-  tipo: string
-  titulo?: string
-  descripcion: string
-  monto: number
-  fechaVencimiento: string
-  estado: 'al_dia' | 'pendiente' | 'vencido'
-  notificarEmail?: boolean
-}
-
-const DAYS_HEADER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
-const MONTH_NAMES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-]
-
-function getCalendarDays(year: number, month: number) {
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
-  let startDow = firstDay.getDay()
-  if (startDow === 0) startDow = 7 // Monday = 1
-  const daysInMonth = lastDay.getDate()
-
-  const days: { day: number; currentMonth: boolean }[] = []
-
-  // Previous month padding
-  const prevMonthLast = new Date(year, month, 0).getDate()
-  for (let i = startDow - 1; i > 0; i--) {
-    days.push({ day: prevMonthLast - i + 1, currentMonth: false })
-  }
-
-  // Current month
-  for (let d = 1; d <= daysInMonth; d++) {
-    days.push({ day: d, currentMonth: true })
-  }
-
-  // Next month padding
-  const remaining = 7 - (days.length % 7)
-  if (remaining < 7) {
-    for (let d = 1; d <= remaining; d++) {
-      days.push({ day: d, currentMonth: false })
-    }
-  }
-
-  return days
-}
-
-function formatMonto(monto: number): string {
-  return '$ ' + monto.toLocaleString('es-AR', { minimumFractionDigits: 0 })
-}
-
-function getUTCDay(isoString: string) {
-  return new Date(isoString).getUTCDate()
-}
-
-function getUTCMonthIndex(isoString: string) {
-  return new Date(isoString).getUTCMonth()
-}
-
-function statusLabel(estado: string): string {
-  if (estado === 'al_dia') return 'Al día'
-  if (estado === 'pendiente') return 'Pendiente'
-  return 'Vencido'
 }
 
 function statusClass(estado: string): string {
@@ -91,33 +25,10 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpues
   const today = new Date()
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
-  const [vencimientos, setVencimientos] = useState<Vencimiento[]>([])
-  const [loading, setLoading] = useState(true)
+  const { vencimientos, loading, refetch, toggleEstado, remove } = useVencimientos(currentYear, currentMonth)
   const [modalOpen, setModalOpen] = useState(false)
   const [modalDate, setModalDate] = useState('')
   const [selectedVenc, setSelectedVenc] = useState<Vencimiento | null>(null)
-
-  const fetchVencimientos = useCallback(async (year: number, month: number) => {
-    setLoading(true)
-    try {
-      const token = localStorage.getItem('token')
-      const res = await fetch(`${API_URL}/api/user/vencimientos?year=${year}&month=${month + 1}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setVencimientos(data.vencimientos)
-      }
-    } catch {
-      // silently fail
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchVencimientos(currentYear, currentMonth)
-  }, [currentYear, currentMonth, fetchVencimientos])
 
   function openNewModal(day?: number) {
     const targetDay = day ?? today.getDate()
@@ -130,53 +41,12 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpues
 
   function handleCreated() {
     setModalOpen(false)
-    fetchVencimientos(currentYear, currentMonth)
-  }
-
-  async function toggleEstado(v: Vencimiento) {
-    const nuevoEstado = v.estado === 'al_dia' ? 'pendiente' : 'pagado'
-    const prev = vencimientos
-    setVencimientos((list) =>
-      list.map((x) =>
-        x._id === v._id ? { ...x, estado: nuevoEstado === 'pagado' ? 'al_dia' : 'pendiente' } : x
-      )
-    )
-
-    try {
-      const token = localStorage.getItem('token')
-      const res = await fetch(`${API_URL}/api/user/vencimientos/${v._id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ estado: nuevoEstado }),
-      })
-      if (!res.ok) {
-        setVencimientos(prev)
-        return
-      }
-      // refetch para que el server recalcule estado real (pendiente vs vencido por fecha)
-      fetchVencimientos(currentYear, currentMonth)
-    } catch {
-      setVencimientos(prev)
-    }
+    refetch()
   }
 
   async function deleteVencimiento(v: Vencimiento) {
-    try {
-      const token = localStorage.getItem('token')
-      const res = await fetch(`${API_URL}/api/user/vencimientos/${v._id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
-        setSelectedVenc(null)
-        fetchVencimientos(currentYear, currentMonth)
-      }
-    } catch {
-      // silently fail
-    }
+    const ok = await remove(v)
+    if (ok) setSelectedVenc(null)
   }
 
   function goToday() {

@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import type { User } from '../types'
 import AppSidebar from '../components/AppSidebar'
+import { api } from '../lib/apiClient'
 import styles from './UserProfilePage.module.css'
-
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '')
 
 interface UserProfilePageProps {
   user: User
@@ -38,38 +37,24 @@ export default function UserProfilePage({ user, onBack, onGoToCalendar, onGoToIm
     setSuccess('')
 
     try {
-      const token = localStorage.getItem('token')
-      const res = await fetch(`${API_URL}/api/user/profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          nombreCompleto: nombreCompleto.trim(),
-          cuit: cuit.trim() || undefined,
-          categoriaMonotributo: categoriaMonotributo.trim() || undefined,
-          emailNotificaciones: emailNotificaciones.trim(),
-          inicioActividad,
-          personasACargo,
-        }),
+      const data = await api.put<{ user: User }>('/api/user/profile', {
+        nombreCompleto: nombreCompleto.trim(),
+        cuit: cuit.trim() || undefined,
+        categoriaMonotributo: categoriaMonotributo.trim() || undefined,
+        emailNotificaciones: emailNotificaciones.trim(),
+        inicioActividad,
+        personasACargo,
       })
 
-      const data = await res.json()
-
-      if (res.ok) {
-        const isNewCuil = cuit.trim() && !user.cuit
-        onUserUpdated(data.user)
-        if (isNewCuil) {
-          onProfileCompleted(data.user)
-        } else {
-          setSuccess('Perfil actualizado correctamente.')
-        }
+      const isNewCuil = cuit.trim() && !user.cuit
+      onUserUpdated(data.user)
+      if (isNewCuil) {
+        onProfileCompleted(data.user)
       } else {
-        setError(data.message || 'Error al actualizar')
+        setSuccess('Perfil actualizado correctamente.')
       }
-    } catch {
-      setError('Error de conexión')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Error al actualizar')
     } finally {
       setLoading(false)
     }

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
+import { api } from '../lib/apiClient'
 import styles from './NuevoVencimientoModal.module.css'
-
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '')
 
 interface NuevoVencimientoModalProps {
   isoDate: string // YYYY-MM-DD inicial sugerido
@@ -50,33 +49,17 @@ export default function NuevoVencimientoModal({ isoDate, onClose, onCreated }: N
 
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      const res = await fetch(`${API_URL}/api/user/vencimientos`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          titulo: titulo.trim(),
-          descripcion: descripcion.trim() || titulo.trim(),
-          monto: monto ? Number(monto) : 0,
-          fechaVencimiento: fecha,
-          notificarEmail: notifEmail,
-          recurrente,
-        }),
+      await api.post('/api/user/vencimientos', {
+        titulo: titulo.trim(),
+        descripcion: descripcion.trim() || titulo.trim(),
+        monto: monto ? Number(monto) : 0,
+        fechaVencimiento: fecha,
+        notificarEmail: notifEmail,
+        recurrente,
       })
-
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.message || 'No se pudo crear el vencimiento')
-        setLoading(false)
-        return
-      }
-
       onCreated()
-    } catch {
-      setError('Error de conexión')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'No se pudo crear el vencimiento')
       setLoading(false)
     }
   }
