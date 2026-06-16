@@ -4,6 +4,7 @@
 const express = require("express");
 const cors = require("cors");
 const { env } = require("./config/env");
+const { errorHandler } = require("./middleware/errorHandler");
 
 function createApp() {
   const app = express();
@@ -23,6 +24,8 @@ function createApp() {
   app.use("/api/auth", require("./routes/auth"));
   app.use("/api/user", require("./routes/user"));
   app.use("/api/impuestos", require("./routes/impuestos"));
+
+  app.use(errorHandler);
 
   return app;
 }
