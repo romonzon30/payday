@@ -4,13 +4,13 @@
 //
 // jest is configured to ignore this file as a test (testPathIgnorePatterns).
 
-const express = require("express");
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const { MongoMemoryServer } = require("mongodb-memory-server");
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
+const { createApp } = require("../app");
 const ConfiguracionAfip = require("../models/ConfiguracionAfip");
 const User = require("../models/User");
 
@@ -33,14 +33,9 @@ async function clearDb() {
   }
 }
 
-// Builds an Express app mounting the real routers (no listen, no scheduler).
+// Builds the real Express app (no listen, no scheduler).
 function buildApp() {
-  const app = express();
-  app.use(express.json());
-  app.use("/api/auth", require("../routes/auth"));
-  app.use("/api/user", require("../routes/user"));
-  app.use("/api/impuestos", require("../routes/impuestos"));
-  return app;
+  return createApp();
 }
 
 // Inserts one AFIP category config (defaults to a real category-C-like shape).

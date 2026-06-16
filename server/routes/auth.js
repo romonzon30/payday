@@ -2,8 +2,9 @@ const router = require("express").Router();
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
+const { env } = require("../config/env");
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client(env.googleClientId);
 
 // POST /api/auth/google — login o auto-registro con Google
 router.post("/google", async (req, res) => {
@@ -12,7 +13,7 @@ router.post("/google", async (req, res) => {
 
     const ticket = await client.verifyIdToken({
       idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience: env.googleClientId,
     });
 
     const payload = ticket.getPayload();
@@ -32,7 +33,7 @@ router.post("/google", async (req, res) => {
       await user.save();
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+    const token = jwt.sign({ id: user._id }, env.jwtSecret);
 
     res.json({ token, user });
   } catch (err) {
@@ -45,7 +46,7 @@ router.post("/register", async (req, res) => {
   try {
     const { token: authToken, nombreCompleto, dni, emailNotificaciones } = req.body;
 
-    const decoded = jwt.verify(authToken, process.env.JWT_SECRET);
+    const decoded = jwt.verify(authToken, env.jwtSecret);
     const user = await User.findById(decoded.id);
 
     if (!user) {
@@ -97,7 +98,7 @@ router.post("/google-access", async (req, res) => {
       await user.save();
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+    const token = jwt.sign({ id: user._id }, env.jwtSecret);
 
     res.json({ token, user });
   } catch (err) {

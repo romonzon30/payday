@@ -1,12 +1,12 @@
 const { adjustToNextBusinessDayUTC } = require("../domain/businessDays");
 
 describe("adjustToNextBusinessDayUTC", () => {
-  test("a weekday is returned unchanged at 12:00 UTC", () => {
-    // 2026-01-01 is a Thursday
-    const d = adjustToNextBusinessDayUTC(2026, 0, 1);
+  test("a normal weekday is returned unchanged at 12:00 UTC", () => {
+    // 2026-01-08 is a Thursday and not a holiday
+    const d = adjustToNextBusinessDayUTC(2026, 0, 8);
     expect(d.getUTCFullYear()).toBe(2026);
     expect(d.getUTCMonth()).toBe(0);
-    expect(d.getUTCDate()).toBe(1);
+    expect(d.getUTCDate()).toBe(8);
     expect(d.getUTCHours()).toBe(12);
   });
 
@@ -24,12 +24,18 @@ describe("adjustToNextBusinessDayUTC", () => {
     expect(d.getUTCDay()).toBe(1);
   });
 
-  test("PINS current behavior: national holidays are NOT skipped", () => {
-    // 2026-05-01 (Día del Trabajador) is a Friday and a national holiday.
-    // The current implementation only skips weekends, so it stays on May 1.
-    // When holiday awareness is added, this test must be updated on purpose.
+  test("a national holiday is skipped", () => {
+    // 2026-05-01 (Día del Trabajador) is a Friday holiday -> rolls over the
+    // weekend to Monday 2026-05-04.
     const d = adjustToNextBusinessDayUTC(2026, 4, 1);
-    expect(d.getUTCDate()).toBe(1);
+    expect(d.getUTCDate()).toBe(4);
+    expect(d.getUTCDay()).toBe(1); // Monday
+  });
+
+  test("a holiday landing on a weekday rolls to the next free weekday", () => {
+    // 2026-01-01 (Año Nuevo) is a Thursday holiday -> Friday 2026-01-02
+    const d = adjustToNextBusinessDayUTC(2026, 0, 1);
+    expect(d.getUTCDate()).toBe(2);
     expect(d.getUTCDay()).toBe(5); // Friday
   });
 });
