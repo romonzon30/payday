@@ -78,6 +78,7 @@ export default function AppSidebar({
   ]
 
   return (
+    <>
     <aside className={styles.sidebar}>
       <span className={styles.brand}>PAYDAY</span>
 
@@ -86,6 +87,7 @@ export default function AppSidebar({
           <button
             key={item.id}
             className={`${styles.navItem} ${activeView === item.id ? styles.navItemActive : ''}`}
+            aria-current={activeView === item.id ? 'page' : undefined}
             onClick={activeView !== item.id ? item.onClick : undefined}
           >
             {item.icon}
@@ -135,5 +137,29 @@ export default function AppSidebar({
         </button>
       </div>
     </aside>
+
+    {/* Bottom nav — only shown ≤768px (sidebar is hidden there). Reuses the same callbacks. */}
+    <nav className={styles.mobileNav} aria-label="Navegación principal">
+      {navItems.map((item) => (
+        <button
+          key={item.id}
+          className={`${styles.mobileNavItem} ${activeView === item.id ? styles.mobileNavItemActive : ''}`}
+          aria-current={activeView === item.id ? 'page' : undefined}
+          onClick={activeView !== item.id ? item.onClick : undefined}
+        >
+          {item.icon}
+          <span>{item.label}</span>
+        </button>
+      ))}
+      <button className={styles.mobileNavItem} onClick={onLogout}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+        <span>Salir</span>
+      </button>
+    </nav>
+    </>
   )
 }

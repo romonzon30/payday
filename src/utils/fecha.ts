@@ -42,6 +42,22 @@ export function statusLabel(estado: string): string {
   return 'Vencido'
 }
 
+// Relative label for a vencimiento's due date: "Vence hoy" / "Vence el 22 de Jun"
+// / "Venció el 22 de Jun". Compares the stored UTC date against the current local
+// date (matching how the calendar grid maps days), so an item due today is never
+// shown as already expired. Pass long=true for the full month name.
+export function vencimientoDateLabel(iso: string, long = false, now: Date = new Date()): string {
+  const d = new Date(iso)
+  const cmp =
+    d.getUTCFullYear() - now.getFullYear() ||
+    d.getUTCMonth() - now.getMonth() ||
+    d.getUTCDate() - now.getDate()
+  if (cmp === 0) return 'Vence hoy'
+  const dayNum = d.getUTCDate()
+  const monthName = long ? MONTH_NAMES[d.getUTCMonth()] : MONTH_NAMES[d.getUTCMonth()].slice(0, 3)
+  return `${cmp < 0 ? 'Venció' : 'Vence'} el ${dayNum} de ${monthName}`
+}
+
 // Formats an amount as Argentine pesos, e.g. 56501.85 -> "$ 56.501,85".
 export function formatMonto(monto: number): string {
   return '$ ' + monto.toLocaleString('es-AR', { minimumFractionDigits: 0 })

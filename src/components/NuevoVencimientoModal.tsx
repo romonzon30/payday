@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { api } from '../lib/apiClient'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 import styles from './NuevoVencimientoModal.module.css'
 
 interface NuevoVencimientoModalProps {
@@ -17,18 +18,11 @@ export default function NuevoVencimientoModal({ isoDate, onClose, onCreated }: N
   const [recurrente, setRecurrente] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const modalRef = useFocusTrap<HTMLDivElement>(onClose)
 
   useEffect(() => {
     setFecha(isoDate)
   }, [isoDate])
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -66,9 +60,17 @@ export default function NuevoVencimientoModal({ isoDate, onClose, onCreated }: N
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={modalRef}
+        className={styles.modal}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="nuevoVencTitle"
+        tabIndex={-1}
+      >
         <div className={styles.header}>
-          <h2 className={styles.title}>Nuevo vencimiento</h2>
+          <h2 id="nuevoVencTitle" className={styles.title}>Nuevo vencimiento</h2>
           <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Cerrar">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />

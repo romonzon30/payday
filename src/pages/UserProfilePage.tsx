@@ -31,6 +31,11 @@ export default function UserProfilePage({ user, onBack, onGoToCalendar, onGoToIm
       setError('Nombre y email son requeridos')
       return
     }
+    const cuitClean = cuit.trim().replace(/[-\s]/g, '')
+    if (cuitClean && !/^\d{11}$/.test(cuitClean)) {
+      setError('El CUIL debe tener 11 dígitos (ej. 20-12345678-9)')
+      return
+    }
 
     setLoading(true)
     setError('')

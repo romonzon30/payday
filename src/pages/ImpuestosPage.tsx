@@ -97,7 +97,7 @@ export default function ImpuestosPage({ user, onGoToCalendar, onGoToDashboard, o
       await api.del(`/api/impuestos/${imp.vencimientoId}`)
       await fetchPreview()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Error')
+      setMontoErrors(prev => ({ ...prev, [imp.id]: e instanceof Error ? e.message : 'Error al eliminar' }))
     }
   }
 

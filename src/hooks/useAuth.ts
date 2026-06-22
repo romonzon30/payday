@@ -6,7 +6,8 @@ import { api, setOnUnauthorized } from '../lib/apiClient'
 // and logs out automatically when the API reports 401.
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  // Only "loading" when there's a token to validate; no token => logged out immediately.
+  const [loading, setLoading] = useState(() => !!localStorage.getItem('token'))
 
   useEffect(() => {
     setOnUnauthorized(() => setUser(null))
@@ -15,10 +16,7 @@ export function useAuth() {
 
   useEffect(() => {
     const token = localStorage.getItem('token')
-    if (!token) {
-      setLoading(false)
-      return
-    }
+    if (!token) return
     api
       .get<{ user: User }>('/api/user/me')
       .then((data) => setUser(data.user))

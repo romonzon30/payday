@@ -1,6 +1,5 @@
 export interface User {
   _id: string
-  googleUid: string
   email: string
   emailNotificaciones: string
   nombreCompleto: string

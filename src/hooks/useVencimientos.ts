@@ -4,9 +4,15 @@ import { api } from '../lib/apiClient'
 
 // Loads and mutates the vencimientos for a given month, with an optimistic
 // estado toggle that rolls back on failure.
+// The estado the API accepts on a PATCH (write contract). Distinct from the
+// display EstadoVencimiento the API returns: the server stores 'pagado' and
+// renders it back as 'al_dia'.
+type EstadoUpdate = 'pagado' | 'pendiente'
+
 export function useVencimientos(year: number, month: number) {
   const [vencimientos, setVencimientos] = useState<Vencimiento[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   const refetch = useCallback(async () => {
     setLoading(true)
@@ -15,8 +21,9 @@ export function useVencimientos(year: number, month: number) {
         `/api/user/vencimientos?year=${year}&month=${month + 1}`
       )
       setVencimientos(data.vencimientos)
+      setError(false)
     } catch {
-      // silently fail (keep current list)
+      setError(true)
     } finally {
       setLoading(false)
     }
@@ -28,16 +35,17 @@ export function useVencimientos(year: number, month: number) {
 
   const toggleEstado = useCallback(
     async (v: Vencimiento) => {
-      const nuevoEstado = v.estado === 'al_dia' ? 'pendiente' : 'pagado'
+      const willPay = v.estado !== 'al_dia' // pendiente/vencido -> pagar; al_dia -> desmarcar
+      const writeEstado: EstadoUpdate = willPay ? 'pagado' : 'pendiente'
       let prev: Vencimiento[] = []
       setVencimientos((list) => {
         prev = list
         return list.map((x) =>
-          x._id === v._id ? { ...x, estado: nuevoEstado === 'pagado' ? 'al_dia' : 'pendiente' } : x
+          x._id === v._id ? { ...x, estado: willPay ? 'al_dia' : 'pendiente' } : x
         )
       })
       try {
-        await api.patch(`/api/user/vencimientos/${v._id}`, { estado: nuevoEstado })
+        await api.patch(`/api/user/vencimientos/${v._id}`, { estado: writeEstado })
         // refetch so the server recomputes the real estado (pendiente vs vencido)
         refetch()
       } catch {
@@ -60,5 +68,5 @@ export function useVencimientos(year: number, month: number) {
     [refetch]
   )
 
-  return { vencimientos, loading, refetch, toggleEstado, remove }
+  return { vencimientos, loading, error, refetch, toggleEstado, remove }
 }
