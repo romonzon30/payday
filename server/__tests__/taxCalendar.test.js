@@ -1,4 +1,4 @@
-const { parseCuitLastDigit, getGrupoForDigit, computeVencimientoDate } = require("../domain/taxCalendar");
+const { isValidCuit, parseCuitLastDigit, getGrupoForDigit, computeVencimientoDate } = require("../domain/taxCalendar");
 const { adjustToNextBusinessDayUTC } = require("../domain/businessDays");
 const { IMPUESTOS } = require("../data/taxCalendar2026");
 
@@ -20,6 +20,25 @@ describe("parseCuitLastDigit", () => {
 
   test("returns 0 for non-numeric input", () => {
     expect(parseCuitLastDigit("abc")).toBe(0);
+  });
+});
+
+describe("isValidCuit", () => {
+  test("accepts a CUIT with a correct verification digit (with and without dashes)", () => {
+    expect(isValidCuit("20-12345678-6")).toBe(true);
+    expect(isValidCuit("20123456786")).toBe(true);
+  });
+
+  test("rejects a wrong verification digit", () => {
+    expect(isValidCuit("20-12345678-9")).toBe(false);
+    expect(isValidCuit("27-12345678-4")).toBe(false);
+  });
+
+  test("rejects bad shapes and empty input", () => {
+    expect(isValidCuit("abc")).toBe(false);
+    expect(isValidCuit("123")).toBe(false);
+    expect(isValidCuit("")).toBe(false);
+    expect(isValidCuit(null)).toBe(false);
   });
 });
 
