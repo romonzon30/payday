@@ -9,8 +9,18 @@ const { HttpError } = require("../middleware/errorHandler");
 
 const IMPUESTO_IDS = IMPUESTOS.map((i) => i.id);
 
+// Validates a year + 0-indexed month, returning them as integers or throwing 400.
+function parseYearMonth(year, month) {
+  const y = Number(year);
+  const m = Number(month);
+  if (!Number.isInteger(y) || y < 2000 || y > 2100) throw new HttpError(400, "Año inválido");
+  if (!Number.isInteger(m) || m < 0 || m > 11) throw new HttpError(400, "Mes inválido");
+  return { y, m };
+}
+
 // Computes the tax calendar for a month, flagging already-added taxes.
 async function preview(user, year, month) {
+  ({ y: year, m: month } = parseYearMonth(year, month));
   const lastDigit = parseCuitLastDigit(user.cuit);
   const monthStart = new Date(Date.UTC(year, month, 1));
   const monthEnd = new Date(Date.UTC(year, month + 1, 1));
@@ -45,6 +55,7 @@ async function preview(user, year, month) {
 // Persists a tax vencimiento for one month, or for all remaining months when
 // periodico. Returns the response body.
 async function agregar(user, { impuestoId, year, month, monto, notificarEmail = true, periodico = false }) {
+  ({ y: year, m: month } = parseYearMonth(year, month));
   const montoNum = parseFloat(monto);
   if (!monto || isNaN(montoNum) || montoNum <= 0) throw new HttpError(400, "El monto debe ser mayor a $0");
 

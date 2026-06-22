@@ -6,7 +6,8 @@ const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
 const env = {
-  port: Number(process.env.PORT) || 5000,
+  nodeEnv: process.env.NODE_ENV || "development",
+  port: Number(process.env.PORT) || 3001,
   mongoUri: process.env.MONGO_URI || "",
   jwtSecret: process.env.JWT_SECRET || "",
   googleClientId: process.env.GOOGLE_CLIENT_ID || "",

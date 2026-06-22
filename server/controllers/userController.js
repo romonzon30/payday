@@ -1,14 +1,15 @@
 const userService = require("../services/userService");
 const vencimientoService = require("../services/vencimientoService");
+const { toUserDTO } = require("../services/userDTO");
 
 async function me(req, res) {
   await userService.ensureCurrentYearVencimientos(req.user);
-  res.json({ user: req.user });
+  res.json({ user: toUserDTO(req.user) });
 }
 
 async function updateProfile(req, res) {
   const user = await userService.updateProfile(req.user, req.body);
-  res.json({ user });
+  res.json({ user: toUserDTO(user) });
 }
 
 async function listVencimientos(req, res) {

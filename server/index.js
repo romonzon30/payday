@@ -8,7 +8,7 @@ const { startNotificationScheduler } = require("./services/notificationScheduler
 const { verifyTransporter } = require("./services/emailService");
 
 async function start() {
-  validateEnv();
+  validateEnv({ throwOnMissing: env.nodeEnv === "production" });
 
   await connectDB();
   await seedAfipCategorias();

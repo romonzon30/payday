@@ -3,12 +3,15 @@
 
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const { env } = require("./config/env");
 const { errorHandler } = require("./middleware/errorHandler");
 
 function createApp() {
   const app = express();
 
+  app.use(helmet());
   app.use(
     cors({
       origin(origin, callback) {
@@ -19,9 +22,17 @@ function createApp() {
       },
     })
   );
-  app.use(express.json());
+  app.use(express.json({ limit: "100kb" }));
 
-  app.use("/api/auth", require("./routes/auth"));
+  // Throttle the public auth endpoints to limit brute-force / abuse.
+  const authLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.use("/api/auth", authLimiter, require("./routes/auth"));
   app.use("/api/user", require("./routes/user"));
   app.use("/api/impuestos", require("./routes/impuestos"));
 
