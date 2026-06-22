@@ -53,6 +53,13 @@ function primerNombre(nombreCompleto) {
 
 // Configuración visual y de copy por tipo de aviso
 const TIPOS = {
+  "7d": {
+    color: "#3b82f6",
+    icon: "🗓️",
+    titulo: "Tu vencimiento es en una semana",
+    mensaje: "Faltan <strong>7 días</strong> para el vencimiento.",
+    subject: (nombre) => `🗓️ Faltan 7 días para tu vencimiento: ${nombre}`,
+  },
   "48h": {
     color: "#f59e0b",
     icon: "⏰",

@@ -90,6 +90,29 @@ describe("checkAndNotify", () => {
     expect(fresh.notifVencidoEnviada).toBe(true);
   });
 
+  test("fires all four types (7d, 48h, 24h, hoy) in a single run", async () => {
+    const user = await makeUser();
+    const v7 = await makeVenc(user, { fechaVencimiento: inHours(156) });
+    const v48 = await makeVenc(user, { fechaVencimiento: inHours(36) });
+    const v24 = await makeVenc(user, { fechaVencimiento: inHours(12) });
+    const vHoy = await makeVenc(user, { fechaVencimiento: inHours(-1) });
+
+    await checkAndNotify();
+
+    expect(sendVencimientoEmail).toHaveBeenCalledTimes(4);
+    const tipos = sendVencimientoEmail.mock.calls.map(([arg]) => arg.tipo);
+    expect(tipos).toEqual(expect.arrayContaining(["7d", "48h", "24h", "hoy"]));
+
+    expect((await Vencimiento.findById(v7._id)).notif7dEnviada).toBe(true);
+    expect((await Vencimiento.findById(v48._id)).notif48hEnviada).toBe(true);
+    expect((await Vencimiento.findById(v24._id)).notif24hEnviada).toBe(true);
+    const hoy = await Vencimiento.findById(vHoy._id);
+    expect(hoy.notifVencidoEnviada).toBe(true);
+    expect(hoy.estado).toBe("vencido");
+
+    expect(await Notificacion.countDocuments()).toBe(4);
+  });
+
   test("reverts the claim when the email fails, so the next run retries", async () => {
     const user = await makeUser();
     const v = await makeVenc(user, { fechaVencimiento: inHours(36) });

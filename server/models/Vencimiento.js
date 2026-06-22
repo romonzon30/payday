@@ -14,6 +14,7 @@ const VencimientoSchema = new mongoose.Schema(
       enum: ["pendiente", "pagado", "vencido", "al_dia"],
       default: "pendiente",
     },
+    notif7dEnviada: { type: Boolean, default: false },
     notif48hEnviada: { type: Boolean, default: false },
     notif24hEnviada: { type: Boolean, default: false },
     notifVencidoEnviada: { type: Boolean, default: false },
