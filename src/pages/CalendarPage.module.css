@@ -172,9 +172,14 @@
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.calendarNavBtn:hover {
+.calendarNavBtn:hover:not(:disabled) {
   background-color: var(--clr-hover-strong);
   color: var(--color-dark-on-surface);
+}
+
+.calendarNavBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .todayBtn {
@@ -224,6 +229,28 @@
   border: 1px solid var(--clr-border);
   border-radius: 12px;
   overflow: hidden;
+}
+
+.calendarLoading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 480px;
+  border: 1px solid var(--clr-border);
+  border-radius: 12px;
+}
+
+.calendarLottie {
+  width: 140px;
+  height: 140px;
+}
+
+.calendarLoadingText {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-dark-outline-variant);
 }
 
 .dayHeader {

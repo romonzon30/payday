@@ -147,3 +147,10 @@ button {
   border: none;
   background: none;
 }
+
+/* Reserve space for the fixed mobile bottom-nav so it never covers content. */
+@media (max-width: 768px) {
+  body {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom));
+  }
+}

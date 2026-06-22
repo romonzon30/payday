@@ -1,17 +1,13 @@
 import Lottie from 'lottie-react'
 import type { User } from '../types'
 import celebrationAnimation from '../assets/celebration.json'
+import { MONTH_NAMES } from '../utils/fecha'
 import styles from './ProfileCompletedPage.module.css'
 
 interface ProfileCompletedPageProps {
   user: User
   onGoToDashboard: () => void
 }
-
-const MESES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-]
 
 function adjustToNextBusinessDay(date: Date): Date {
   const d = new Date(date)
@@ -79,7 +75,7 @@ export default function ProfileCompletedPage({ user, onGoToDashboard }: ProfileC
               Vencimientos mensuales
             </h3>
             <div className={styles.vencimientosGrid}>
-              {MESES.map((mes, i) => {
+              {MONTH_NAMES.map((mes, i) => {
                 const isPast = i < currentMonth
                 const isCurrent = i === currentMonth
                 const vencDay = getMonotributoVencimientoDay(currentYear, i)

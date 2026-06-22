@@ -2,11 +2,10 @@ import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import Lottie from "lottie-react";
 import type { User } from "../types";
+import { api } from "../lib/apiClient";
+import { GOOGLE_CLIENT_ID } from "../config/env";
 import loadingAnimation from "../assets/loading.json";
 import styles from "./LoginCard.module.css";
-
-const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/+$/, '');
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 interface LoginCardProps {
   onLoginSuccess: (token: string, user: User) => void
@@ -14,28 +13,18 @@ interface LoginCardProps {
 
 export default function LoginCard({ onLoginSuccess }: LoginCardProps) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleGoogleLogin(credential: string) {
     setLoading(true);
+    setError("");
 
     try {
-      const res = await fetch(`${API_URL}/api/auth/google`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credential }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        onLoginSuccess(data.token, data.user);
-      } else {
-        setLoading(false);
-        alert(data.message || "Error con Google");
-      }
-    } catch {
+      const data = await api.post<{ token: string; user: User }>("/api/auth/google", { credential });
+      onLoginSuccess(data.token, data.user);
+    } catch (e: unknown) {
       setLoading(false);
-      alert("Error de conexión");
+      setError(e instanceof Error ? e.message : "Error con Google");
     }
   }
 
@@ -64,12 +53,17 @@ export default function LoginCard({ onLoginSuccess }: LoginCardProps) {
                 handleGoogleLogin(credentialResponse.credential);
               }
             }}
-            onError={() => alert("Error al iniciar sesión con Google")}
+            onError={() => setError("Error al iniciar sesión con Google")}
           />
         ) : (
           <p className={styles.subtitle}>
             Google no esta configurado en este entorno. Define VITE_GOOGLE_CLIENT_ID
             (o GOOGLE_CLIENT_ID en build) para habilitar el acceso.
+          </p>
+        )}
+        {error && (
+          <p className={styles.subtitle} role="alert" style={{ color: "#dc2626" }}>
+            {error}
           </p>
         )}
       </div>

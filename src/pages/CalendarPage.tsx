@@ -1,11 +1,14 @@
-import { useState, useEffect, useCallback } from 'react'
-import type { User } from '../types'
+import { useState } from 'react'
+import Lottie from 'lottie-react'
+import type { User, Vencimiento } from '../types'
+import loadingAnimation from '../assets/loading.json'
 import AppFooter from '../components/AppFooter'
 import AppSidebar from '../components/AppSidebar'
 import NuevoVencimientoModal from '../components/NuevoVencimientoModal'
+import VencimientoDetailModal from '../components/VencimientoDetailModal'
+import { useVencimientos } from '../hooks/useVencimientos'
+import { MONTH_NAMES, DAYS_HEADER, getCalendarDays, formatMonto, statusLabel, vencimientoDateLabel } from '../utils/fecha'
 import styles from './CalendarPage.module.css'
-
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '')
 
 interface CalendarPageProps {
   user: User
@@ -15,71 +18,7 @@ interface CalendarPageProps {
   onLogout: () => void
 }
 
-interface Vencimiento {
-  _id: string
-  tipo: string
-  titulo?: string
-  descripcion: string
-  monto: number
-  fechaVencimiento: string
-  estado: 'al_dia' | 'pendiente' | 'vencido'
-  notificarEmail?: boolean
-}
-
-const DAYS_HEADER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
-const MONTH_NAMES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-]
-
-function getCalendarDays(year: number, month: number) {
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
-  let startDow = firstDay.getDay()
-  if (startDow === 0) startDow = 7 // Monday = 1
-  const daysInMonth = lastDay.getDate()
-
-  const days: { day: number; currentMonth: boolean }[] = []
-
-  // Previous month padding
-  const prevMonthLast = new Date(year, month, 0).getDate()
-  for (let i = startDow - 1; i > 0; i--) {
-    days.push({ day: prevMonthLast - i + 1, currentMonth: false })
-  }
-
-  // Current month
-  for (let d = 1; d <= daysInMonth; d++) {
-    days.push({ day: d, currentMonth: true })
-  }
-
-  // Next month padding
-  const remaining = 7 - (days.length % 7)
-  if (remaining < 7) {
-    for (let d = 1; d <= remaining; d++) {
-      days.push({ day: d, currentMonth: false })
-    }
-  }
-
-  return days
-}
-
-function formatMonto(monto: number): string {
-  return '$ ' + monto.toLocaleString('es-AR', { minimumFractionDigits: 0 })
-}
-
-function getUTCDay(isoString: string) {
-  return new Date(isoString).getUTCDate()
-}
-
-function getUTCMonthIndex(isoString: string) {
-  return new Date(isoString).getUTCMonth()
-}
-
-function statusLabel(estado: string): string {
-  if (estado === 'al_dia') return 'Al día'
-  if (estado === 'pendiente') return 'Pendiente'
-  return 'Vencido'
-}
+const MAX_FISCAL_YEAR = 2026
 
 function statusClass(estado: string): string {
   if (estado === 'al_dia') return styles.statusAlDia
@@ -91,33 +30,10 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpues
   const today = new Date()
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
-  const [vencimientos, setVencimientos] = useState<Vencimiento[]>([])
-  const [loading, setLoading] = useState(true)
+  const { vencimientos, loading, error, refetch, toggleEstado, remove } = useVencimientos(currentYear, currentMonth)
   const [modalOpen, setModalOpen] = useState(false)
   const [modalDate, setModalDate] = useState('')
   const [selectedVenc, setSelectedVenc] = useState<Vencimiento | null>(null)
-
-  const fetchVencimientos = useCallback(async (year: number, month: number) => {
-    setLoading(true)
-    try {
-      const token = localStorage.getItem('token')
-      const res = await fetch(`${API_URL}/api/user/vencimientos?year=${year}&month=${month + 1}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setVencimientos(data.vencimientos)
-      }
-    } catch {
-      // silently fail
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchVencimientos(currentYear, currentMonth)
-  }, [currentYear, currentMonth, fetchVencimientos])
 
   function openNewModal(day?: number) {
     const targetDay = day ?? today.getDate()
@@ -130,53 +46,12 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpues
 
   function handleCreated() {
     setModalOpen(false)
-    fetchVencimientos(currentYear, currentMonth)
-  }
-
-  async function toggleEstado(v: Vencimiento) {
-    const nuevoEstado = v.estado === 'al_dia' ? 'pendiente' : 'pagado'
-    const prev = vencimientos
-    setVencimientos((list) =>
-      list.map((x) =>
-        x._id === v._id ? { ...x, estado: nuevoEstado === 'pagado' ? 'al_dia' : 'pendiente' } : x
-      )
-    )
-
-    try {
-      const token = localStorage.getItem('token')
-      const res = await fetch(`${API_URL}/api/user/vencimientos/${v._id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ estado: nuevoEstado }),
-      })
-      if (!res.ok) {
-        setVencimientos(prev)
-        return
-      }
-      // refetch para que el server recalcule estado real (pendiente vs vencido por fecha)
-      fetchVencimientos(currentYear, currentMonth)
-    } catch {
-      setVencimientos(prev)
-    }
+    refetch()
   }
 
   async function deleteVencimiento(v: Vencimiento) {
-    try {
-      const token = localStorage.getItem('token')
-      const res = await fetch(`${API_URL}/api/user/vencimientos/${v._id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
-        setSelectedVenc(null)
-        fetchVencimientos(currentYear, currentMonth)
-      }
-    } catch {
-      // silently fail
-    }
+    const ok = await remove(v)
+    if (ok) setSelectedVenc(null)
   }
 
   function goToday() {
@@ -193,7 +68,12 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpues
     }
   }
 
+  // Fiscal year cap: the tax data only covers 2026, so the calendar stops at
+  // December 2026 — there's nothing to show beyond it.
+  const atFiscalEnd = currentYear >= MAX_FISCAL_YEAR && currentMonth >= 11
+
   function goNext() {
+    if (atFiscalEnd) return
     if (currentMonth === 11) {
       setCurrentMonth(0)
       setCurrentYear(currentYear + 1)
@@ -243,7 +123,13 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpues
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
               </button>
               <button className={styles.todayBtn} onClick={goToday}>Hoy</button>
-              <button className={styles.calendarNavBtn} onClick={goNext}>
+              <button
+                className={styles.calendarNavBtn}
+                onClick={goNext}
+                disabled={atFiscalEnd}
+                aria-label="Mes siguiente"
+                title={atFiscalEnd ? 'Diciembre 2026 es el último mes disponible' : undefined}
+              >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
               </button>
               <button className={styles.newBtn} onClick={() => openNewModal()}>
@@ -252,6 +138,12 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpues
               </button>
             </div>
 
+            {loading ? (
+              <div className={styles.calendarLoading}>
+                <Lottie animationData={loadingAnimation} loop className={styles.calendarLottie} />
+                <p className={styles.calendarLoadingText}>Cargando vencimientos…</p>
+              </div>
+            ) : (
             <div className={styles.calendarGrid}>
               {DAYS_HEADER.map(d => (
                 <div key={d} className={styles.dayHeader}>{d}</div>
@@ -290,6 +182,7 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpues
                 )
               })}
             </div>
+            )}
           </section>
 
           {/* Vencimientos Panel */}
@@ -315,6 +208,15 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpues
                   </div>
                 ))}
               </div>
+            ) : error ? (
+              <div className={styles.vencEmpty}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <p className={styles.vencEmptyTitle}>No pudimos cargar tus vencimientos</p>
+                <p className={styles.vencEmptyText}>Revisá tu conexión e intentá de nuevo.</p>
+                <button className={styles.todayBtn} onClick={refetch} style={{ marginTop: 12 }}>Reintentar</button>
+              </div>
             ) : vencimientos.length === 0 ? (
               <div className={styles.vencEmpty}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -329,46 +231,33 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpues
               </div>
             ) : (
               <div className={styles.vencList}>
-                {vencimientos.map(v => {
-                  const dayNum = getUTCDay(v.fechaVencimiento)
-                  const monthShort = MONTH_NAMES[getUTCMonthIndex(v.fechaVencimiento)].slice(0, 3)
-                  const isPast = new Date(v.fechaVencimiento) < today
-                  return (
-                    <div
-                      key={v._id}
-                      className={styles.vencCard}
-                      onClick={() => setSelectedVenc(v)}
-                    >
-                      <div className={styles.vencCardTop}>
-                        <div>
-                          <h3 className={styles.vencCardTitle}>{v.tipo === 'custom' ? (v.titulo || v.descripcion) : v.descripcion}</h3>
-                          <span className={`${styles.vencCardStatus} ${statusClass(v.estado)}`}>
-                            {statusLabel(v.estado)}
-                          </span>
-                        </div>
-                      </div>
-                      <p className={styles.vencCardDate}>
-                        {isPast ? `Venció el ${dayNum} de ${monthShort}` : `Vence el ${dayNum} de ${monthShort}`}
-                      </p>
-                      <div className={styles.vencCardBottom}>
-                        <span className={styles.vencCardMonto}>{formatMonto(v.monto)}</span>
-                        <button className={styles.vencCardBtnDetails} onClick={(e) => { e.stopPropagation(); setSelectedVenc(v) }}>
-                          Ver detalle
-                        </button>
+                {vencimientos.map(v => (
+                  <div
+                    key={v._id}
+                    className={styles.vencCard}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Ver detalle de ${v.tipo === 'custom' ? (v.titulo || v.descripcion) : v.descripcion}`}
+                    onClick={() => setSelectedVenc(v)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedVenc(v) } }}
+                  >
+                    <div className={styles.vencCardTop}>
+                      <div>
+                        <h3 className={styles.vencCardTitle}>{v.tipo === 'custom' ? (v.titulo || v.descripcion) : v.descripcion}</h3>
+                        <span className={`${styles.vencCardStatus} ${statusClass(v.estado)}`}>
+                          {statusLabel(v.estado)}
+                        </span>
                       </div>
                     </div>
-                  )
-                })}
-
-                <div className={styles.vencAllGood}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-                  </svg>
-                  <div>
-                    <p className={styles.vencAllGoodTitle}>Sin más vencimientos</p>
-                    <p className={styles.vencAllGoodText}>Estás al día con tus obligaciones de este mes.</p>
+                    <p className={styles.vencCardDate}>{vencimientoDateLabel(v.fechaVencimiento)}</p>
+                    <div className={styles.vencCardBottom}>
+                      <span className={styles.vencCardMonto}>{formatMonto(v.monto)}</span>
+                      <button className={styles.vencCardBtnDetails} onClick={(e) => { e.stopPropagation(); setSelectedVenc(v) }}>
+                        Ver detalle
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
             )}
           </aside>
@@ -385,51 +274,12 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpues
       )}
 
       {selectedVenc && (
-        <div className={styles.detailOverlay} onClick={() => setSelectedVenc(null)}>
-          <div className={styles.detailModal} onClick={(e) => e.stopPropagation()}>
-            <button className={styles.detailCloseBtn} onClick={() => setSelectedVenc(null)} aria-label="Cerrar">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-
-            <p className={styles.detailType}>{selectedVenc.tipo === 'monotributo' ? 'Monotributo AFIP' : 'Vencimiento custom'}</p>
-            <h3 className={styles.detailTitle}>
-              {selectedVenc.tipo === 'custom' ? (selectedVenc.titulo || selectedVenc.descripcion) : selectedVenc.descripcion}
-            </h3>
-            <span className={`${styles.vencCardStatus} ${statusClass(selectedVenc.estado)}`} style={{ marginBottom: 16, display: 'inline-block' }}>
-              {statusLabel(selectedVenc.estado)}
-            </span>
-
-            <div className={styles.detailMonto}>{formatMonto(selectedVenc.monto)}</div>
-            <p className={styles.detailDate}>
-              {new Date(selectedVenc.fechaVencimiento) < today
-                ? `Venció el ${getUTCDay(selectedVenc.fechaVencimiento)} de ${MONTH_NAMES[getUTCMonthIndex(selectedVenc.fechaVencimiento)]}`
-                : `Vence el ${getUTCDay(selectedVenc.fechaVencimiento)} de ${MONTH_NAMES[getUTCMonthIndex(selectedVenc.fechaVencimiento)]}`}
-            </p>
-
-            <div className={styles.detailActions}>
-              {selectedVenc.estado === 'pendiente' && (
-                <button className={styles.vencCardBtnBlue} onClick={() => { toggleEstado(selectedVenc); setSelectedVenc(null) }}>
-                  ✓ Marcar como pagado
-                </button>
-              )}
-              {selectedVenc.estado === 'vencido' && (
-                <button className={styles.vencCardBtnRed} onClick={() => { toggleEstado(selectedVenc); setSelectedVenc(null) }}>
-                  Regularizar
-                </button>
-              )}
-              {selectedVenc.estado === 'al_dia' && (
-                <button className={styles.vencCardBtnGhost} onClick={() => { toggleEstado(selectedVenc); setSelectedVenc(null) }}>
-                  Marcar como pendiente
-                </button>
-              )}
-              {selectedVenc.tipo === 'custom' && (
-                <button className={styles.detailDeleteBtn} onClick={() => deleteVencimiento(selectedVenc)}>
-                  Eliminar vencimiento
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <VencimientoDetailModal
+          venc={selectedVenc}
+          onClose={() => setSelectedVenc(null)}
+          onToggleEstado={(v) => { toggleEstado(v); setSelectedVenc(null) }}
+          onDelete={deleteVencimiento}
+        />
       )}
     </div>
   )

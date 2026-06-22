@@ -1,14 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { User } from '../types'
+import type { User, ImpuestoPreview } from '../types'
 import AppSidebar from '../components/AppSidebar'
+import { api } from '../lib/apiClient'
+import { MONTH_NAMES } from '../utils/fecha'
 import styles from './ImpuestosPage.module.css'
-
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '')
-
-const MONTH_NAMES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-]
 
 const CATEGORIA_LABELS: Record<string, string> = {
   aportes: 'Aportes',
@@ -17,17 +12,6 @@ const CATEGORIA_LABELS: Record<string, string> = {
   provincial: 'Provincial',
   impuestos: 'Impuestos',
   retenciones: 'Retenciones',
-}
-
-interface ImpuestoPreview {
-  id: string
-  nombre: string
-  descripcion: string
-  categoria: string
-  cuitGrupo: number[]
-  fechaVencimiento: string
-  yaAgregado: boolean
-  vencimientoId: string | null
 }
 
 interface ImpuestosPageProps {
@@ -55,28 +39,22 @@ export default function ImpuestosPage({ user, onGoToCalendar, onGoToDashboard, o
   const [addResult, setAddResult] = useState<Record<string, string>>({})
   const [error, setError]         = useState<string | null>(null)
 
-  const token = localStorage.getItem('token')
-
   const fetchPreview = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`${API_URL}/api/impuestos/preview?year=${year}&month=${month}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) throw new Error('Error al cargar impuestos')
-      const data = await res.json()
+      const data = await api.get<{ impuestos: ImpuestoPreview[] }>(`/api/impuestos/preview?year=${year}&month=${month}`)
       setImpuestos(data.impuestos)
       // initialize notif toggles to true for unadded
       const n: Record<string, boolean> = {}
-      data.impuestos.forEach((i: ImpuestoPreview) => { n[i.id] = true })
+      data.impuestos.forEach((i) => { n[i.id] = true })
       setNotif((prev) => ({ ...n, ...prev }))
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error desconocido')
     } finally {
       setLoading(false)
     }
-  }, [year, month, token])
+  }, [year, month])
 
   useEffect(() => { fetchPreview() }, [fetchPreview])
 
@@ -94,20 +72,14 @@ export default function ImpuestosPage({ user, onGoToCalendar, onGoToDashboard, o
     setAdding(imp.id)
     setAddResult(prev => ({ ...prev, [imp.id]: '' }))
     try {
-      const res = await fetch(`${API_URL}/api/impuestos/agregar`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          impuestoId: imp.id,
-          year,
-          month,
-          monto: montoVal,
-          notificarEmail: notif[imp.id] ?? true,
-          periodico: isPeriodico,
-        }),
+      const data = await api.post<{ count?: number }>('/api/impuestos/agregar', {
+        impuestoId: imp.id,
+        year,
+        month,
+        monto: montoVal,
+        notificarEmail: notif[imp.id] ?? true,
+        periodico: isPeriodico,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error al agregar')
       if (isPeriodico && data.count != null) {
         setAddResult(prev => ({ ...prev, [imp.id]: `✓ Agregado para ${data.count} mes${data.count !== 1 ? 'es' : ''}` }))
       }
@@ -122,14 +94,10 @@ export default function ImpuestosPage({ user, onGoToCalendar, onGoToDashboard, o
   async function handleEliminar(imp: ImpuestoPreview) {
     if (!imp.vencimientoId) return
     try {
-      const res = await fetch(`${API_URL}/api/impuestos/${imp.vencimientoId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) throw new Error('Error al eliminar')
+      await api.del(`/api/impuestos/${imp.vencimientoId}`)
       await fetchPreview()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Error')
+      setMontoErrors(prev => ({ ...prev, [imp.id]: e instanceof Error ? e.message : 'Error al eliminar' }))
     }
   }
 
