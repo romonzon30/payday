@@ -2,6 +2,7 @@
 
 const ConfiguracionAfip = require("../models/ConfiguracionAfip");
 const { upsertMonotributoVencimientos } = require("./monotributoService");
+const { isValidCuit } = require("../domain/taxCalendar");
 const { HttpError } = require("../middleware/errorHandler");
 
 // Ensures the current year's vencimientos exist; failures are non-fatal.
@@ -19,7 +20,10 @@ async function updateProfile(user, body) {
 
   if (nombreCompleto) user.nombreCompleto = nombreCompleto.trim();
   if (emailNotificaciones) user.emailNotificaciones = emailNotificaciones.trim();
-  if (cuit && cuit.trim()) user.cuit = cuit.trim();
+  if (cuit && cuit.trim()) {
+    if (!isValidCuit(cuit)) throw new HttpError(400, "CUIT/CUIL inválido");
+    user.cuit = cuit.trim();
+  }
 
   if (categoriaMonotributo) {
     const categoria = String(categoriaMonotributo).trim().toUpperCase();
