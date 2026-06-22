@@ -21,8 +21,10 @@ async function connectDB() {
   try {
     const { MongoMemoryServer } = require("mongodb-memory-server");
     const mongod = await MongoMemoryServer.create({ instance: { port: 27018, dbName: "monotributo_saas" } });
-    await mongoose.connect(mongod.getUri());
-    console.log("MongoDB Memory conectado en:", mongod.getUri());
+    // getUri() drops the dbName; pass it explicitly so the in-memory fallback
+    // uses monotributo_saas (not the default "test" database).
+    await mongoose.connect(mongod.getUri("monotributo_saas"));
+    console.log("MongoDB Memory conectado en:", mongod.getUri("monotributo_saas"));
   } catch {
     console.error("MONGO_URI no definida y mongodb-memory-server no disponible. Abortando.");
     process.exit(1);

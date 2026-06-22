@@ -10,8 +10,8 @@ class HttpError extends Error {
   }
 }
 
-// Express error middleware (must keep the 4-arg signature).
-// eslint-disable-next-line no-unused-vars
+// Express error middleware (must keep the 4-arg signature so Express treats it
+// as an error handler, even though `next` is unused).
 function errorHandler(err, req, res, next) {
   if (err instanceof HttpError) {
     return res.status(err.status).json({ message: err.message });
@@ -19,7 +19,7 @@ function errorHandler(err, req, res, next) {
   if (err && err.code === 11000) {
     return res.status(409).json({ message: "Registro duplicado" });
   }
-  console.error(`[ERROR] ${req.method} ${req.originalUrl}:`, err.message);
+  console.error(`[ERROR] ${req.method} ${req.originalUrl}:`, err.stack || err.message);
   res.status(500).json({ message: "Error interno del servidor" });
 }
 
