@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import Lottie from 'lottie-react'
 import type { User, Vencimiento } from '../types'
+import loadingAnimation from '../assets/loading.json'
 import AppFooter from '../components/AppFooter'
 import AppSidebar from '../components/AppSidebar'
 import NuevoVencimientoModal from '../components/NuevoVencimientoModal'
@@ -123,6 +125,12 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpues
               </button>
             </div>
 
+            {loading ? (
+              <div className={styles.calendarLoading}>
+                <Lottie animationData={loadingAnimation} loop className={styles.calendarLottie} />
+                <p className={styles.calendarLoadingText}>Cargando vencimientos…</p>
+              </div>
+            ) : (
             <div className={styles.calendarGrid}>
               {DAYS_HEADER.map(d => (
                 <div key={d} className={styles.dayHeader}>{d}</div>
@@ -161,6 +169,7 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpues
                 )
               })}
             </div>
+            )}
           </section>
 
           {/* Vencimientos Panel */}
