@@ -172,9 +172,14 @@
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.calendarNavBtn:hover {
+.calendarNavBtn:hover:not(:disabled) {
   background-color: var(--clr-hover-strong);
   color: var(--color-dark-on-surface);
+}
+
+.calendarNavBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .todayBtn {

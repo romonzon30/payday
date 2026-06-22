@@ -58,3 +58,23 @@ describe('CalendarPage loading state', () => {
     expect(screen.getByText('Lun')).toBeInTheDocument()
   })
 })
+
+describe('CalendarPage fiscal year cap', () => {
+  afterEach(() => vi.useRealTimers())
+
+  test('disables next navigation at December 2026', () => {
+    loading = false
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-12-15T12:00:00Z'))
+    renderPage()
+    expect(screen.getByLabelText('Mes siguiente')).toBeDisabled()
+  })
+
+  test('allows next navigation before December 2026', () => {
+    loading = false
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-06-15T12:00:00Z'))
+    renderPage()
+    expect(screen.getByLabelText('Mes siguiente')).not.toBeDisabled()
+  })
+})

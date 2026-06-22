@@ -18,6 +18,8 @@ interface CalendarPageProps {
   onLogout: () => void
 }
 
+const MAX_FISCAL_YEAR = 2026
+
 function statusClass(estado: string): string {
   if (estado === 'al_dia') return styles.statusAlDia
   if (estado === 'pendiente') return styles.statusPendiente
@@ -66,7 +68,12 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpues
     }
   }
 
+  // Fiscal year cap: the tax data only covers 2026, so the calendar stops at
+  // December 2026 — there's nothing to show beyond it.
+  const atFiscalEnd = currentYear >= MAX_FISCAL_YEAR && currentMonth >= 11
+
   function goNext() {
+    if (atFiscalEnd) return
     if (currentMonth === 11) {
       setCurrentMonth(0)
       setCurrentYear(currentYear + 1)
@@ -116,7 +123,13 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpues
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
               </button>
               <button className={styles.todayBtn} onClick={goToday}>Hoy</button>
-              <button className={styles.calendarNavBtn} onClick={goNext}>
+              <button
+                className={styles.calendarNavBtn}
+                onClick={goNext}
+                disabled={atFiscalEnd}
+                aria-label="Mes siguiente"
+                title={atFiscalEnd ? 'Diciembre 2026 es el último mes disponible' : undefined}
+              >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
               </button>
               <button className={styles.newBtn} onClick={() => openNewModal()}>
