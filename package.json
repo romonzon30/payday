@@ -18,6 +18,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -25,9 +26,30 @@
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.0.0",
+    "eslint": "^10.5.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.6.0",
     "jsdom": "^29.1.1",
     "typescript": "^5.0.0",
+    "typescript-eslint": "^8.61.1",
     "vite": "^4.4.0",
     "vitest": "^4.1.7"
-  }
+  },
+  "description": "Interfaz de login para PayDay Tax Compliance. Construida con **React + TypeScript + Vite**.",
+  "main": "eslint.config.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/romonzon30/payday.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/romonzon30/payday/issues"
+  },
+  "homepage": "https://github.com/romonzon30/payday#readme"
 }
