@@ -109,8 +109,8 @@ export default function SobreNosotrosPage({ onBack }: SobreNosotrosPageProps) {
             <p className={styles.closingText}>
               Este es un proyecto universitario en constante evolución. Si sos monotributista y tenés ideas para mejorar la herramienta, nos encanta escucharte.
             </p>
-            <a href="mailto:hola@payday.ai" className={styles.closingBtn}>
-              Escribinos a hola@payday.ai
+            <a href="mailto:soporte@payday.ai" className={styles.closingBtn}>
+              Escribinos a soporte@payday.ai
             </a>
           </div>
         </section>
