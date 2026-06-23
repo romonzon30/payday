@@ -5,10 +5,9 @@ interface SobreNosotrosPageProps {
 }
 
 const TEAM = [
-  { name: 'Valentina Cruz', role: 'CEO & Co-fundadora', initials: 'VC' },
-  { name: 'Mateo Rodríguez', role: 'CTO & Co-fundador', initials: 'MR' },
-  { name: 'Lucía Fernández', role: 'Head of Product', initials: 'LF' },
-  { name: 'Santiago Gómez', role: 'Lead Engineer', initials: 'SG' },
+  { name: 'Ezequiel Mario Zinno', role: 'CEO & Arquitecto', initials: 'EZ' },
+  { name: 'Agustín Monzón', role: 'CFO & Backend Lead', initials: 'AM' },
+  { name: 'Juan Pablo Fernández Tarragona', role: 'CTO & Frontend Lead', initials: 'JF' },
 ]
 
 const VALUES = [
@@ -54,12 +53,12 @@ export default function SobreNosotrosPage({ onBack }: SobreNosotrosPageProps) {
         </button>
 
         <header className={styles.hero}>
-          <span className={styles.badge}>Fintech · Buenos Aires, Argentina</span>
+          <span className={styles.badge}>Proyecto Universitario · Argentina · 2026</span>
           <h1 className={styles.heroTitle}>
             Simplificando el monotributo<br/>para millones de argentinos.
           </h1>
           <p className={styles.heroText}>
-            PayDay nació en 2024 con una misión clara: eliminar el estrés fiscal de los trabajadores independientes de Argentina. Somos una startup fintech en etapa temprana, con raíces en Buenos Aires y la mirada puesta en toda la región.
+            PayDay nació en 2026 como proyecto universitario con una misión clara: eliminar el estrés fiscal de los trabajadores independientes de Argentina.
           </p>
         </header>
 
@@ -91,7 +90,7 @@ export default function SobreNosotrosPage({ onBack }: SobreNosotrosPageProps) {
         <section className={styles.teamSection}>
           <h2 className={styles.sectionTitle}>El equipo</h2>
           <p className={styles.teamIntro}>
-            Somos un equipo pequeño y apasionado, ex-empleados de empresas de tecnología financiera y del sector público. Conocemos el sistema desde adentro.
+            Somos tres estudiantes universitarios apasionados por la tecnología y las finanzas, unidos por el objetivo de hacer más fácil la vida del monotributista argentino.
           </p>
           <div className={styles.teamGrid}>
             {TEAM.map((member) => (
@@ -108,7 +107,7 @@ export default function SobreNosotrosPage({ onBack }: SobreNosotrosPageProps) {
           <div className={styles.closingCard}>
             <h2 className={styles.closingTitle}>Recién empezamos</h2>
             <p className={styles.closingText}>
-              Estamos en beta abierta y creciendo rápido. Si sos desarrollador, diseñador o simplemente un monotributista con ideas, nos encanta escucharte. Esta es una herramienta construida por y para la comunidad.
+              Este es un proyecto universitario en constante evolución. Si sos monotributista y tenés ideas para mejorar la herramienta, nos encanta escucharte.
             </p>
             <a href="mailto:hola@payday.ai" className={styles.closingBtn}>
               Escribinos a hola@payday.ai
