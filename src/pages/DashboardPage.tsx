@@ -1,4 +1,4 @@
-import type { User } from '../types'
+import type { User, View } from '../types'
 import AppFooter from '../components/AppFooter'
 import AppSidebar from '../components/AppSidebar'
 import styles from './DashboardPage.module.css'
@@ -9,13 +9,14 @@ interface DashboardPageProps {
   onGoToCalendar: () => void
   onGoToImpuestos: () => void
   onLogout: () => void
+  onNavigate: (view: View) => void
 }
 
 function upperCaseName(name: string) {
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
-export default function DashboardPage({ user, onGoToProfile, onGoToCalendar, onGoToImpuestos, onLogout }: DashboardPageProps) {
+export default function DashboardPage({ user, onGoToProfile, onGoToCalendar, onGoToImpuestos, onLogout, onNavigate }: DashboardPageProps) {
   return (
     <div className={styles.page}>
       <AppSidebar
@@ -189,7 +190,7 @@ export default function DashboardPage({ user, onGoToProfile, onGoToCalendar, onG
             </div>
           </section>
 
-          <AppFooter />
+          <AppFooter onNavigate={onNavigate} />
         </main>
       </div>
     </div>

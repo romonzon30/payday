@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "PowerShell(Get-Process -Id 27108)",
-      "PowerShell(wmic process where processid=27108 get commandline 2>&1)"
+      "PowerShell(wmic process where processid=27108 get commandline 2>&1)",
+      "Bash(node --check services/emailService.js)",
+      "Bash(node --check services/notificationScheduler.js)",
+      "Bash(node --check routes/user.js)",
+      "Bash(node _tmp_test_email.js)",
+      "Bash(node _tmp_diag.js)",
+      "Bash(node scripts/send-test-email.js)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "shadcn"
+  ]
 }

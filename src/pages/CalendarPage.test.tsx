@@ -35,7 +35,7 @@ const noop = () => {}
 
 function renderPage() {
   return render(
-    <CalendarPage user={user} onBack={noop} onGoToProfile={noop} onGoToImpuestos={noop} onLogout={noop} />,
+    <CalendarPage user={user} onBack={noop} onGoToProfile={noop} onGoToImpuestos={noop} onLogout={noop} onNavigate={noop} />,
   )
 }
 
