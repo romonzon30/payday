@@ -1,6 +1,16 @@
+import type { View } from '../types'
 import styles from './AppFooter.module.css'
 
-export default function AppFooter() {
+interface AppFooterProps {
+  onNavigate?: (view: View) => void
+}
+
+export default function AppFooter({ onNavigate }: AppFooterProps) {
+  const nav = (view: View) => (e: React.MouseEvent) => {
+    e.preventDefault()
+    onNavigate?.(view)
+  }
+
   return (
     <footer className={styles.footer}>
       <div className={styles.footerTop}>
@@ -28,17 +38,13 @@ export default function AppFooter() {
         <div className={styles.footerLinks}>
           <div className={styles.footerCol}>
             <h4 className={styles.footerColTitle}>Empresa</h4>
-            <a href="#" className={styles.footerLink}>Sobre nosotros</a>
-            <a href="#" className={styles.footerLink}>Blog</a>
-            <a href="#" className={styles.footerLink}>Prensa</a>
-            <a href="#" className={styles.footerLink}>Carreras</a>
+            <a href="#" onClick={nav('sobreNosotros')} className={styles.footerLink}>Sobre nosotros</a>
           </div>
           <div className={styles.footerCol}>
             <h4 className={styles.footerColTitle}>Contacto</h4>
             <a href="mailto:support@payday.ai" className={styles.footerLink}>support@payday.ai</a>
-            <a href="#" className={styles.footerLink}>Soporte</a>
-            <a href="#" className={styles.footerLink}>Centro de ayuda</a>
-            <a href="#" className={styles.footerLink}>FAQ</a>
+            <a href="#" onClick={nav('ayuda')} className={styles.footerLink}>Centro de ayuda</a>
+            <a href="#" onClick={nav('ayuda')} className={styles.footerLink}>FAQ</a>
           </div>
         </div>
       </div>

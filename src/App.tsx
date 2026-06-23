@@ -8,6 +8,8 @@ import UserProfilePage from './pages/UserProfilePage'
 import ProfileCompletedPage from './pages/ProfileCompletedPage'
 import CalendarPage from './pages/CalendarPage'
 import ImpuestosPage from './pages/ImpuestosPage'
+import CentroAyudaPage from './pages/CentroAyudaPage'
+import SobreNosotrosPage from './pages/SobreNosotrosPage'
 
 const homeView = (u: User): View => (u.perfilCompleto ? 'calendar' : 'dashboard')
 
@@ -55,6 +57,14 @@ export default function App() {
     )
   }
 
+  if (view === 'ayuda') {
+    return <CentroAyudaPage onBack={() => setView(user ? homeView(user) : 'login')} />
+  }
+
+  if (view === 'sobreNosotros') {
+    return <SobreNosotrosPage onBack={() => setView(user ? homeView(user) : 'login')} />
+  }
+
   if (view === 'calendar' && user) {
     return (
       <CalendarPage
@@ -63,6 +73,7 @@ export default function App() {
         onGoToProfile={() => setView('profile')}
         onGoToImpuestos={() => setView('impuestos')}
         onLogout={handleLogout}
+        onNavigate={setView}
       />
     )
   }
@@ -87,6 +98,7 @@ export default function App() {
         onGoToCalendar={() => setView('calendar')}
         onGoToImpuestos={() => setView('impuestos')}
         onLogout={handleLogout}
+        onNavigate={setView}
       />
     )
   }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Lottie from 'lottie-react'
-import type { User, Vencimiento } from '../types'
+import type { User, Vencimiento, View } from '../types'
 import loadingAnimation from '../assets/loading.json'
 import AppFooter from '../components/AppFooter'
 import AppSidebar from '../components/AppSidebar'
@@ -16,6 +16,7 @@ interface CalendarPageProps {
   onGoToProfile: () => void
   onGoToImpuestos: () => void
   onLogout: () => void
+  onNavigate: (view: View) => void
 }
 
 const MAX_FISCAL_YEAR = 2026
@@ -26,7 +27,7 @@ function statusClass(estado: string): string {
   return styles.statusVencido
 }
 
-export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpuestos, onLogout }: CalendarPageProps) {
+export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpuestos, onLogout, onNavigate }: CalendarPageProps) {
   const today = new Date()
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
@@ -262,7 +263,7 @@ export default function CalendarPage({ user, onBack, onGoToProfile, onGoToImpues
             )}
           </aside>
         </div>
-        <AppFooter />
+        <AppFooter onNavigate={onNavigate} />
       </div>
 
       {modalOpen && (

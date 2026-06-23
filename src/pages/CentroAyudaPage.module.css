@@ -1,0 +1,224 @@
+.page {
+  min-height: 100vh;
+  padding: 40px 24px 80px;
+  background: var(--color-dark-bg, #0f1117);
+}
+
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid rgba(195, 198, 215, 0.12);
+  color: var(--color-dark-outline-variant);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  margin-bottom: 40px;
+}
+
+.backBtn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(195, 198, 215, 0.2);
+  color: var(--color-dark-on-surface);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 56px;
+}
+
+.headerIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  color: var(--color-dark-brand);
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-dark-on-surface);
+  margin: 0 0 12px;
+}
+
+.subtitle {
+  font-size: 15px;
+  color: var(--color-dark-outline-variant);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-dark-brand);
+  margin: 0 0 20px;
+}
+
+/* ── FAQ ── */
+.faqSection {
+  margin-bottom: 56px;
+}
+
+.faqList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.faqItem {
+  border: 1px solid rgba(195, 198, 215, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 0.15s ease;
+}
+
+.faqItemOpen {
+  border-color: rgba(37, 99, 235, 0.25);
+  background: rgba(37, 99, 235, 0.03);
+}
+
+.faqQuestion {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-dark-on-surface);
+  line-height: 1.4;
+}
+
+.faqQuestion:hover {
+  color: var(--color-dark-brand);
+}
+
+.faqChevron {
+  flex-shrink: 0;
+  color: var(--color-dark-outline-variant);
+  transition: transform 0.2s ease;
+}
+
+.faqChevronOpen {
+  transform: rotate(180deg);
+  color: var(--color-dark-brand);
+}
+
+.faqAnswer {
+  padding: 0 20px 18px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-dark-outline-variant);
+  margin: 0;
+}
+
+/* ── Contact ── */
+.contactSection {
+  padding: 32px;
+  border-radius: 16px;
+  border: 1px solid rgba(195, 198, 215, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  text-align: center;
+}
+
+.contactText {
+  font-size: 14px;
+  color: var(--color-dark-outline-variant);
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+.contactActions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.emailBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(195, 198, 215, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-dark-on-surface);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.emailBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(195, 198, 215, 0.22);
+}
+
+.whatsappBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: 10px;
+  border: none;
+  background: #25D366;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.whatsappBtn:hover {
+  background: #20bc5a;
+}
+
+@media (max-width: 600px) {
+  .page {
+    padding: 24px 16px 60px;
+  }
+
+  .title {
+    font-size: 26px;
+  }
+
+  .contactSection {
+    padding: 24px 16px;
+  }
+
+  .contactActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .emailBtn,
+  .whatsappBtn {
+    justify-content: center;
+  }
+}

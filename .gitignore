@@ -30,3 +30,9 @@ dist-ssr
 /server/.env
 /server/.env.*
 !/server/.env.example
+
+# AI files
+.claude
+.atl
+.mcp.json
+.vercel

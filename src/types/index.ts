@@ -38,4 +38,4 @@ export interface ImpuestoPreview {
   vencimientoId: string | null
 }
 
-export type View = 'login' | 'dashboard' | 'profile' | 'profileCompleted' | 'calendar' | 'impuestos'
+export type View = 'login' | 'dashboard' | 'profile' | 'profileCompleted' | 'calendar' | 'impuestos' | 'ayuda' | 'sobreNosotros'
